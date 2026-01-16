@@ -1,0 +1,37 @@
+# Enable rewrite engine
+RewriteEngine On
+
+# Set base for motor-bersih folder
+RewriteBase /motor-bersih/
+
+# Redirect API requests
+RewriteRule ^api/(.*)$ api/$1 [L,QSA]
+
+# If file or directory doesn't exist, redirect to index.html
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ index.html [L,QSA]
+
+# Security headers
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-Frame-Options "SAMEORIGIN"
+    Header set X-XSS-Protection "1; mode=block"
+    
+    # CORS for API
+    Header set Access-Control-Allow-Origin "*"
+    Header set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+    Header set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+</IfModule>
+
+# Prevent directory listing
+Options -Indexes
+
+# Error documents
+ErrorDocument 404 /motor-bersih/index.html
+ErrorDocument 403 /motor-bersih/index.html
+
+# Compress text files
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript application/json
+</IfModule>

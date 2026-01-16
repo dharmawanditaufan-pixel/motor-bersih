@@ -1,0 +1,44 @@
+{
+  "app_settings": {
+    "app_name": "MotoWash POS",
+    "currency": "IDR",
+    "timezone": "Asia/Jakarta",
+    "business_hours": {
+      "open": "08:00",
+      "close": "20:00"
+    },
+    "notifications": {
+      "whatsapp_enabled": true,
+      "template_welcome": "Selamat datang di MotoWash! Cuci ke-{count}. Gratis setelah 5x cuci.",
+      "template_free_wash": "Selamat! Anda mendapatkan 1x cuci gratis di MotoWash.",
+      "template_reminder": "Jangan lupa, Anda punya {remaining} cuci lagi untuk dapat gratis."
+    },
+    "commission": {
+      "operator_rate": 30,
+      "calculate_on_free_wash": true
+    },
+    "camera": {
+      "save_plate_photos": true,
+      "photo_quality": 0.8,
+      "auto_capture_delay": 2000
+    }
+  },
+  "expenses": [
+    {
+      "id": "EXP001",
+      "name": "Listrik",
+      "amount": 500000,
+      "category": "utility",
+      "date": "2024-01-25",
+      "description": "Pembayaran listrik bulan Januari"
+    },
+    {
+      "id": "EXP002",
+      "name": "Sabun Cuci",
+      "amount": 300000,
+      "category": "supply",
+      "date": "2024-01-20",
+      "description": "Pembelian sabun dan shampoo"
+    }
+  ]
+}

@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auth Diagnostic - Motor Bersih</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-4xl mx-auto">
+        <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+            <h1 class="text-2xl font-bold mb-4">🔍 Authentication Diagnostic</h1>
+            <p class="text-gray-600 mb-6">Tool untuk debugging masalah authentication dan token</p>
+            
+            <button onclick="runDiagnostics()" class="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
+                Run Diagnostics
+            </button>
+            
+            <button onclick="testLogin()" class="bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 ml-2">
+                Test Login
+            </button>
+            
+            <button onclick="clearAuth()" class="bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 ml-2">
+                Clear Auth Data
+            </button>
+        </div>
+
+        <div id="results" class="space-y-4"></div>
+    </div>
+
+    <script src="js/api-client.js"></script>
+    <script>
+        function addResult(title, content, type = 'info') {
+            const colors = {
+                'success': 'bg-green-50 border-green-500 text-green-900',
+                'error': 'bg-red-50 border-red-500 text-red-900',
+                'warning': 'bg-yellow-50 border-yellow-500 text-yellow-900',
+                'info': 'bg-blue-50 border-blue-500 text-blue-900'
+            };
+
+            const html = `
+                <div class="border-l-4 ${colors[type]} p-4 rounded">
+                    <h3 class="font-bold mb-2">${title}</h3>
+                    <pre class="text-sm overflow-auto">${content}</pre>
+                </div>
+            `;
+            
+            document.getElementById('results').innerHTML += html;
+        }
+
+        function runDiagnostics() {
+            document.getElementById('results').innerHTML = '';
+            
+            // Check 1: SessionStorage
+            const sessionToken = sessionStorage.getItem('authToken');
+            addResult(
+                '1. SessionStorage Token',
+                sessionToken ? `Found: ${sessionToken.substring(0, 50)}...` : 'Not found',
+                sessionToken ? 'success' : 'error'
+            );
+
+            // Check 2: LocalStorage
+            const localToken = localStorage.getItem('authToken');
+            addResult(
+                '2. LocalStorage Token',
+                localToken ? `Found: ${localToken.substring(0, 50)}...` : 'Not found',
+                localToken ? 'success' : 'warning'
+            );
+
+            // Check 3: Current User
+            const userData = localStorage.getItem('currentUser');
+            if (userData) {
+                try {
+                    const user = JSON.parse(userData);
+                    addResult('3. Current User', JSON.stringify(user, null, 2), 'success');
+                } catch (e) {
+                    addResult('3. Current User', 'Parse error: ' + e.message, 'error');
+                }
+            } else {
+                addResult('3. Current User', 'Not found', 'warning');
+            }
+
+            // Check 4: APIClient
+            if (typeof APIClient !== 'undefined') {
+                try {
+                    const client = new APIClient();
+                    const token = client.getToken();
+                    const baseURL = client.baseURL;
+                    
+                    addResult(
+                        '4. APIClient',
+                        `✓ Loaded\nBase URL: ${baseURL}\nToken: ${token ? token.substring(0, 50) + '...' : 'None'}`,
+                        token ? 'success' : 'warning'
+                    );
+                } catch (e) {
+                    addResult('4. APIClient', 'Error: ' + e.message, 'error');
+                }
+            } else {
+                addResult('4. APIClient', 'Not loaded', 'error');
+            }
+
+            // Check 5: Test API Connection
+            testAPIConnection();
+
+            // Check 6: All Storage Keys
+            const allKeys = {
+                sessionStorage: Object.keys(sessionStorage),
+                localStorage: Object.keys(localStorage)
+            };
+            addResult('5. All Storage Keys', JSON.stringify(allKeys, null, 2), 'info');
+        }
+
+        async function testAPIConnection() {
+            try {
+                const response = await fetch('http://localhost/motor-bersih/api/status.php');
+                const data = await response.json();
+                
+                addResult(
+                    '6. API Connection',
+                    JSON.stringify(data, null, 2),
+                    data.success ? 'success' : 'error'
+                );
+            } catch (e) {
+                addResult('6. API Connection', 'Error: ' + e.message, 'error');
+            }
+        }
+
+        async function testLogin() {
+            document.getElementById('results').innerHTML = '';
+            addResult('Login Test', 'Attempting login...', 'info');
+
+            try {
+                const client = new APIClient();
+                const result = await client.login('admin', 'admin123', 'admin');
+                
+                if (result.success) {
+                    addResult(
+                        'Login Result',
+                        `✓ Success!\nUsername: ${result.user.username}\nRole: ${result.user.role}\nToken: ${result.token.substring(0, 50)}...`,
+                        'success'
+                    );
+                    
+                    // Run diagnostics again to show saved data
+                    setTimeout(runDiagnostics, 1000);
+                } else {
+                    addResult(
+                        'Login Result',
+                        `✗ Failed\n${result.message || result.error}`,
+                        'error'
+                    );
+                }
+            } catch (e) {
+                addResult('Login Result', 'Error: ' + e.message, 'error');
+            }
+        }
+
+        function clearAuth() {
+            sessionStorage.removeItem('authToken');
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('currentUser');
+            localStorage.removeItem('motowash_session');
+            
+            addResult('Clear Auth', '✓ All authentication data cleared', 'success');
+            
+            setTimeout(runDiagnostics, 500);
+        }
+
+        // Auto-run on load
+        window.addEventListener('load', () => {
+            runDiagnostics();
+        });
+    </script>
+</body>
+</html>

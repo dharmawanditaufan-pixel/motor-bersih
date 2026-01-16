@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Verification - Motor Bersih</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-4xl mx-auto bg-white rounded-lg shadow-lg p-8">
+        <h1 class="text-3xl font-bold mb-6 text-gray-900">🔍 File Verification</h1>
+        
+        <div class="mb-6">
+            <h2 class="text-xl font-semibold mb-3">Current Page Info:</h2>
+            <div class="bg-gray-50 p-4 rounded border border-gray-200 font-mono text-sm">
+                <p><strong>Location:</strong> <span id="currentLocation"></span></p>
+                <p><strong>Protocol:</strong> <span id="currentProtocol"></span></p>
+                <p><strong>Hostname:</strong> <span id="currentHostname"></span></p>
+                <p><strong>Pathname:</strong> <span id="currentPathname"></span></p>
+            </div>
+        </div>
+
+        <div class="mb-6">
+            <h2 class="text-xl font-semibold mb-3">JavaScript File Check:</h2>
+            <div id="fileCheckResults" class="space-y-2"></div>
+        </div>
+
+        <div class="mb-6">
+            <h2 class="text-xl font-semibold mb-3">Recommended Access Method:</h2>
+            <div class="bg-blue-50 border-l-4 border-blue-500 p-4">
+                <p class="font-semibold text-blue-900">✅ Correct Way:</p>
+                <code class="block mt-2 bg-blue-100 p-3 rounded text-blue-900">
+                    http://localhost/motor-bersih/index.html
+                </code>
+                <p class="mt-3 font-semibold text-red-900">❌ Wrong Way:</p>
+                <code class="block mt-2 bg-red-100 p-3 rounded text-red-900">
+                    file:///D:/PROJECT/motor-bersih/index.html
+                </code>
+            </div>
+        </div>
+
+        <div id="warningMessage" class="hidden bg-red-50 border-l-4 border-red-500 p-4 mb-6">
+            <p class="font-bold text-red-900">⚠️ Warning:</p>
+            <p class="text-red-800 mt-2">You are accessing this page using the file:// protocol. Please access via web server (http://localhost) for all features to work properly.</p>
+        </div>
+
+        <div id="successMessage" class="hidden bg-green-50 border-l-4 border-green-500 p-4 mb-6">
+            <p class="font-bold text-green-900">✅ Success:</p>
+            <p class="text-green-800 mt-2">You are accessing this page correctly via web server!</p>
+        </div>
+
+        <div class="mt-6">
+            <a href="index.html" class="inline-block bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition">
+                Go to Login Page
+            </a>
+        </div>
+    </div>
+
+    <script>
+        // Display current page info
+        document.getElementById('currentLocation').textContent = window.location.href;
+        document.getElementById('currentProtocol').textContent = window.location.protocol;
+        document.getElementById('currentHostname').textContent = window.location.hostname || '(local file)';
+        document.getElementById('currentPathname').textContent = window.location.pathname;
+
+        // Check if accessed via file protocol
+        if (window.location.protocol === 'file:') {
+            document.getElementById('warningMessage').classList.remove('hidden');
+        } else {
+            document.getElementById('successMessage').classList.remove('hidden');
+        }
+
+        // Files to check
+        const filesToCheck = [
+            'js/api-client.js',
+            'js/utils.js',
+            'js/dashboard.js',
+            'js/auth.js',
+            'js/api.js',
+            'js/transactions.js'
+        ];
+
+        const resultsContainer = document.getElementById('fileCheckResults');
+
+        // Check each file
+        filesToCheck.forEach(file => {
+            const script = document.createElement('script');
+            script.src = file;
+            
+            script.onload = function() {
+                const result = document.createElement('div');
+                result.className = 'flex items-center p-3 bg-green-50 border border-green-200 rounded';
+                result.innerHTML = `
+                    <svg class="w-5 h-5 text-green-600 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    <span class="font-mono text-sm"><strong>${file}</strong> - Loaded Successfully</span>
+                `;
+                resultsContainer.appendChild(result);
+            };
+
+            script.onerror = function() {
+                const result = document.createElement('div');
+                result.className = 'flex items-center p-3 bg-red-50 border border-red-200 rounded';
+                result.innerHTML = `
+                    <svg class="w-5 h-5 text-red-600 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                    </svg>
+                    <span class="font-mono text-sm"><strong>${file}</strong> - Failed to Load (404)</span>
+                `;
+                resultsContainer.appendChild(result);
+            };
+
+            document.head.appendChild(script);
+        });
+    </script>
+</body>
+</html>

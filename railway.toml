@@ -1,0 +1,26 @@
+[build]
+builder = "NIXPACKS"
+
+[deploy]
+startCommand = "node js/server.js"
+healthcheckPath = "/api/status.php"
+healthcheckTimeout = 10
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3
+
+[[services]]
+name = "motor-bersih-api"
+
+[services.domains]
+public = true
+
+[[services.ports]]
+port = 3000
+protocol = "http"
+
+[services.env]
+DB_HOST = { name = "DB_HOST" }
+DB_NAME = { name = "DB_NAME" }
+DB_USER = { name = "DB_USER" }
+DB_PASS = { name = "DB_PASS" }
+NODE_ENV = "production"

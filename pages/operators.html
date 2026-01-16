@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Management Operator - Motor Bersih POS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-50">
+    <div class="max-w-7xl mx-auto py-8 px-4">
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-8">
+            <h1 class="text-3xl font-bold text-gray-900"><i class="fas fa-user-friends text-purple-600 mr-3"></i>Management Operator</h1>
+            <div class="flex gap-3">
+                <button class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-semibold">
+                    <i class="fas fa-user-plus mr-2"></i>Tambah Operator
+                </button>
+                <a href="dashboard.html" class="flex items-center gap-2 px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">
+                    <i class="fas fa-arrow-left"></i> Kembali
+                </a>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="flex gap-4 border-b border-gray-200 mb-6">
+            <button class="tab-button active px-4 py-3 font-semibold text-purple-600 border-b-2 border-purple-600">
+                <i class="fas fa-users mr-2"></i>Daftar Operator
+            </button>
+            <button class="tab-button px-4 py-3 font-semibold text-gray-600 hover:text-gray-900">
+                <i class="fas fa-money-bill-wave mr-2"></i>Komisi & Pembayaran
+            </button>
+            <button class="tab-button px-4 py-3 font-semibold text-gray-600 hover:text-gray-900">
+                <i class="fas fa-calendar-alt mr-2"></i>Jadwal Kerja
+            </button>
+            <button class="tab-button px-4 py-3 font-semibold text-gray-600 hover:text-gray-900">
+                <i class="fas fa-chart-bar mr-2"></i>Laporan
+            </button>
+        </div>
+
+        <!-- Operator List -->
+        <div class="bg-white rounded-xl shadow-lg overflow-hidden">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-xl font-bold text-gray-900">Daftar Operator</h2>
+                    <div class="relative">
+                        <input type="text" placeholder="Cari operator..." class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                        <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Operators Table -->
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-gray-50 border-b border-gray-200">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Nama</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Telepon</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Komisi (Bulan Ini)</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Transaksi</th>
+                            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        <tr class="hover:bg-gray-50 transition">
+                            <td class="px-6 py-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold">B</div>
+                                    <div>
+                                        <p class="font-semibold text-gray-900">Budi Santoso</p>
+                                        <p class="text-xs text-gray-500">ID: OPR-001</p>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 text-gray-700">0812345678</td>
+                            <td class="px-6 py-4">
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">
+                                    <i class="fas fa-circle text-green-600 mr-2" style="font-size: 0.5rem;"></i>Aktif
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 font-semibold text-green-600">Rp 1.500.000</td>
+                            <td class="px-6 py-4 text-gray-700">25</td>
+                            <td class="px-6 py-4">
+                                <button class="text-purple-600 hover:text-purple-700 font-semibold text-sm">Edit</button>
+                            </td>
+                        </tr>
+                        <tr class="hover:bg-gray-50 transition">
+                            <td class="px-6 py-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold">A</div>
+                                    <div>
+                                        <p class="font-semibold text-gray-900">Adi Wijaya</p>
+                                        <p class="text-xs text-gray-500">ID: OPR-002</p>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 text-gray-700">0823456789</td>
+                            <td class="px-6 py-4">
+                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">
+                                    <i class="fas fa-circle text-green-600 mr-2" style="font-size: 0.5rem;"></i>Aktif
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 font-semibold text-green-600">Rp 1.200.000</td>
+                            <td class="px-6 py-4 text-gray-700">20</td>
+                            <td class="px-6 py-4">
+                                <button class="text-purple-600 hover:text-purple-700 font-semibold text-sm">Edit</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Empty State -->
+            <div id="emptyState" class="hidden text-center py-16">
+                <i class="fas fa-inbox text-5xl text-gray-300 mb-4 block"></i>
+                <p class="text-gray-500 mb-4">Belum ada data operator</p>
+                <button class="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-semibold">
+                    <i class="fas fa-user-plus mr-2"></i>Tambah Operator
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/api-client.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/operators.js"></script>
+    <script src="../js/utils.js"></script>
+</body>
+</html>

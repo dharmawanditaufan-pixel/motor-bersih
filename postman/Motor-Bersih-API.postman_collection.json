@@ -1,0 +1,700 @@
+{
+	"info": {
+		"_postman_id": "motor-bersih-api-2024",
+		"name": "Motor Bersih POS API",
+		"description": "Complete API collection for Motor Bersih POS System with authentication, dashboard, and transactions endpoints",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Authentication",
+			"item": [
+				{
+					"name": "Login - Admin",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Test response status",
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"// Parse response",
+									"const jsonData = pm.response.json();",
+									"",
+									"// Test success flag",
+									"pm.test(\"Login successful\", function () {",
+									"    pm.expect(jsonData.success).to.eql(true);",
+									"});",
+									"",
+									"// Test token exists",
+									"pm.test(\"Token is present\", function () {",
+									"    pm.expect(jsonData.token).to.exist;",
+									"    pm.expect(jsonData.token).to.be.a('string');",
+									"});",
+									"",
+									"// Test user data",
+									"pm.test(\"User data is present\", function () {",
+									"    pm.expect(jsonData.user).to.exist;",
+									"    pm.expect(jsonData.user.username).to.eql('admin');",
+									"    pm.expect(jsonData.user.role).to.eql('admin');",
+									"});",
+									"",
+									"// Save token to environment",
+									"if (jsonData.success && jsonData.token) {",
+									"    pm.environment.set(\"auth_token\", jsonData.token);",
+									"    console.log(\"✅ Token saved to environment:\", jsonData.token);",
+									"}",
+									"",
+									"// Display response time",
+									"pm.test(\"Response time is less than 2000ms\", function () {",
+									"    pm.expect(pm.response.responseTime).to.be.below(2000);",
+									"});",
+									"",
+									"console.log(\"Response:\", jsonData);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"admin\",\n    \"password\": \"admin123\",\n    \"role\": \"admin\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth.php",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"auth.php"
+							]
+						},
+						"description": "Login dengan kredensial admin untuk mendapatkan JWT token"
+					},
+					"response": []
+				},
+				{
+					"name": "Login - Operator",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"const jsonData = pm.response.json();",
+									"",
+									"pm.test(\"Login successful\", function () {",
+									"    pm.expect(jsonData.success).to.eql(true);",
+									"});",
+									"",
+									"if (jsonData.success && jsonData.token) {",
+									"    pm.environment.set(\"auth_token\", jsonData.token);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"operator\",\n    \"password\": \"operator123\",\n    \"role\": \"operator\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth.php",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"auth.php"
+							]
+						},
+						"description": "Login sebagai operator"
+					},
+					"response": []
+				},
+				{
+					"name": "Login - Invalid Credentials",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 401 or 200\", function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 401]);",
+									"});",
+									"",
+									"const jsonData = pm.response.json();",
+									"",
+									"pm.test(\"Login failed\", function () {",
+									"    pm.expect(jsonData.success).to.eql(false);",
+									"});",
+									"",
+									"pm.test(\"Error message exists\", function () {",
+									"    pm.expect(jsonData.message).to.exist;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"admin\",\n    \"password\": \"wrongpassword\",\n    \"role\": \"admin\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth.php",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"auth.php"
+							]
+						},
+						"description": "Test dengan kredensial yang salah (harus gagal)"
+					},
+					"response": []
+				},
+				{
+					"name": "Verify Token (GET)",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"const jsonData = pm.response.json();",
+									"",
+									"pm.test(\"Token is valid\", function () {",
+									"    pm.expect(jsonData.success).to.eql(true);",
+									"    pm.expect(jsonData.valid).to.eql(true);",
+									"});",
+									"",
+									"pm.test(\"User data returned\", function () {",
+									"    pm.expect(jsonData.user).to.exist;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/auth.php",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"auth.php"
+							]
+						},
+						"description": "Verifikasi token yang tersimpan masih valid"
+					},
+					"response": []
+				}
+			],
+			"description": "Authentication endpoints untuk login dan verifikasi token"
+		},
+		{
+			"name": "Dashboard",
+			"item": [
+				{
+					"name": "Get Dashboard Data",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"const jsonData = pm.response.json();",
+									"",
+									"pm.test(\"Dashboard data retrieved\", function () {",
+									"    pm.expect(jsonData.success).to.eql(true);",
+									"});",
+									"",
+									"pm.test(\"Statistics exist\", function () {",
+									"    pm.expect(jsonData.stats).to.exist;",
+									"    pm.expect(jsonData.stats.today_transactions).to.exist;",
+									"    pm.expect(jsonData.stats.today_revenue).to.exist;",
+									"    pm.expect(jsonData.stats.total_customers).to.exist;",
+									"});",
+									"",
+									"pm.test(\"Recent transactions exist\", function () {",
+									"    pm.expect(jsonData.recent_transactions).to.exist;",
+									"    pm.expect(jsonData.recent_transactions).to.be.an('array');",
+									"});",
+									"",
+									"console.log(\"Dashboard Stats:\", jsonData.stats);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/dashboard.php",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"dashboard.php"
+							]
+						},
+						"description": "Mendapatkan data dashboard (statistik, transaksi terbaru, dll)"
+					},
+					"response": []
+				}
+			],
+			"description": "Dashboard data endpoints"
+		},
+		{
+			"name": "Transactions",
+			"item": [
+				{
+					"name": "Get All Transactions",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"const jsonData = pm.response.json();",
+									"",
+									"pm.test(\"Transactions retrieved\", function () {",
+									"    pm.expect(jsonData.success).to.eql(true);",
+									"    pm.expect(jsonData.transactions).to.be.an('array');",
+									"});",
+									"",
+									"console.log(\"Total Transactions:\", jsonData.transactions.length);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/transactions.php",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"transactions.php"
+							]
+						},
+						"description": "Mendapatkan semua data transaksi"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Transaction",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200 or 201\", function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"",
+									"const jsonData = pm.response.json();",
+									"",
+									"pm.test(\"Transaction created\", function () {",
+									"    pm.expect(jsonData.success).to.eql(true);",
+									"});",
+									"",
+									"pm.test(\"Transaction ID returned\", function () {",
+									"    pm.expect(jsonData.transaction_id).to.exist;",
+									"});",
+									"",
+									"if (jsonData.transaction_id) {",
+									"    pm.environment.set(\"last_transaction_id\", jsonData.transaction_id);",
+									"    console.log(\"Transaction ID saved:\", jsonData.transaction_id);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"customer_name\": \"Test Customer\",\n    \"license_plate\": \"B 1234 XYZ\",\n    \"motorcycle_type\": \"Sport\",\n    \"service_type\": \"Cuci Motor + Wax\",\n    \"price\": 35000,\n    \"operator\": \"Operator A\",\n    \"payment_method\": \"cash\",\n    \"notes\": \"Test transaction from Postman\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/transactions.php",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"transactions.php"
+							]
+						},
+						"description": "Membuat transaksi baru"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Transaction by ID",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"const jsonData = pm.response.json();",
+									"",
+									"pm.test(\"Transaction found\", function () {",
+									"    pm.expect(jsonData.success).to.eql(true);",
+									"    pm.expect(jsonData.transaction).to.exist;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/transactions.php?id={{last_transaction_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"transactions.php"
+							],
+							"query": [
+								{
+									"key": "id",
+									"value": "{{last_transaction_id}}"
+								}
+							]
+						},
+						"description": "Mendapatkan detail transaksi berdasarkan ID"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Transaction",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"const jsonData = pm.response.json();",
+									"",
+									"pm.test(\"Transaction updated\", function () {",
+									"    pm.expect(jsonData.success).to.eql(true);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"id\": \"{{last_transaction_id}}\",\n    \"status\": \"completed\",\n    \"notes\": \"Updated from Postman\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/transactions.php",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"transactions.php"
+							]
+						},
+						"description": "Update transaksi yang sudah ada"
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Transaction",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"const jsonData = pm.response.json();",
+									"",
+									"pm.test(\"Transaction deleted\", function () {",
+									"    pm.expect(jsonData.success).to.eql(true);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{auth_token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"id\": \"{{last_transaction_id}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/transactions.php",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"transactions.php"
+							]
+						},
+						"description": "Hapus transaksi (soft delete)"
+					},
+					"response": []
+				}
+			],
+			"description": "CRUD operations untuk transaksi"
+		},
+		{
+			"name": "System",
+			"item": [
+				{
+					"name": "API Status Check",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"const jsonData = pm.response.json();",
+									"",
+									"pm.test(\"API is online\", function () {",
+									"    pm.expect(jsonData.success).to.eql(true);",
+									"    pm.expect(jsonData.status).to.eql('online');",
+									"});",
+									"",
+									"pm.test(\"Database connected\", function () {",
+									"    pm.expect(jsonData.database).to.eql('connected');",
+									"});",
+									"",
+									"console.log(\"API Version:\", jsonData.version);",
+									"console.log(\"Server Time:\", jsonData.timestamp);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/status.php",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"status.php"
+							]
+						},
+						"description": "Check API health dan database connection"
+					},
+					"response": []
+				},
+				{
+					"name": "Database Test",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"const jsonData = pm.response.json();",
+									"",
+									"pm.test(\"Database connection successful\", function () {",
+									"    pm.expect(jsonData.success).to.eql(true);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/test.php",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"test.php"
+							]
+						},
+						"description": "Test koneksi database"
+					},
+					"response": []
+				}
+			],
+			"description": "System health check endpoints"
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Global pre-request script",
+					"console.log(\"Request to:\", pm.request.url.toString());",
+					"",
+					"// Check if token exists for protected routes",
+					"const token = pm.environment.get(\"auth_token\");",
+					"if (token) {",
+					"    console.log(\"Using auth token:\", token.substring(0, 20) + \"...\");",
+					"} else {",
+					"    console.log(\"⚠️ No auth token found. Login first!\");",
+					"}"
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					"// Global test script",
+					"pm.test(\"Response has valid JSON\", function () {",
+					"    pm.response.to.be.json;",
+					"});",
+					"",
+					"console.log(\"✓ Request completed in\", pm.response.responseTime, \"ms\");"
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost/motor-bersih",
+			"type": "string"
+		}
+	]
+}

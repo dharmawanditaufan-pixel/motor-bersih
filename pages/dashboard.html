@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Motor Bersih POS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .sidebar-hidden { margin-left: 0; }
+        .sidebar-shown { margin-left: 280px; }
+        @media (max-width: 768px) {
+            .sidebar-shown { margin-left: 0; }
+        }
+        .smooth-transition { transition: all 0.3s ease; }
+        .stat-card {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans">
+    <!-- Sidebar Navigation -->
+    <div class="fixed inset-y-0 left-0 w-72 bg-white shadow-lg z-40 smooth-transition md:translate-x-0 -translate-x-full md:w-280" id="sidebar">
+        <!-- Sidebar Header -->
+        <div class="p-6 border-b border-gray-200">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 bg-gradient-to-br from-purple-600 to-purple-700 rounded-lg flex items-center justify-center text-white">
+                    <i class="fas fa-motorcycle text-lg"></i>
+                </div>
+                <h2 class="text-xl font-bold text-gray-900">Motor Bersih</h2>
+            </div>
+            <p class="text-xs text-gray-500">POS Cuci Motor Modern</p>
+        </div>
+
+        <!-- User Profile -->
+        <div class="p-4 border-b border-gray-200">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white">
+                    <i class="fas fa-user text-lg"></i>
+                </div>
+                <div class="flex-1">
+                    <h3 class="text-sm font-semibold text-gray-900" id="userName">Administrator</h3>
+                    <p class="text-xs text-gray-500" id="userRole">Admin</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Navigation Menu -->
+        <nav class="p-4 space-y-2 flex-1 overflow-y-auto max-h-[calc(100vh-280px)]">
+            <a href="#dashboard" class="nav-item active flex items-center gap-3 px-4 py-3 rounded-lg bg-gradient-to-r from-purple-600 to-purple-700 text-white font-semibold transition">
+                <i class="fas fa-tachometer-alt w-5"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="#new-transaction" class="nav-item flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100 transition">
+                <i class="fas fa-plus-circle w-5 text-blue-600"></i>
+                <span>Transaksi Baru</span>
+            </a>
+            <a href="#camera-capture" class="nav-item flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100 transition">
+                <i class="fas fa-camera w-5 text-green-600"></i>
+                <span>Scan Plat Nomor</span>
+            </a>
+            <a href="#transactions" class="nav-item flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100 transition">
+                <i class="fas fa-history w-5 text-orange-600"></i>
+                <span>Riwayat Transaksi</span>
+            </a>
+            <a href="#customers" class="nav-item flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100 transition">
+                <i class="fas fa-users w-5 text-red-600"></i>
+                <span>Data Pelanggan</span>
+            </a>
+            <a href="#operators" class="nav-item flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100 transition">
+                <i class="fas fa-user-friends w-5 text-indigo-600"></i>
+                <span>Operator & Komisi</span>
+            </a>
+            <a href="#reports" class="nav-item flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100 transition">
+                <i class="fas fa-chart-bar w-5 text-cyan-600"></i>
+                <span>Laporan</span>
+            </a>
+
+            <hr class="my-4">
+
+            <a href="#settings" class="nav-item flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100 transition">
+                <i class="fas fa-cogs w-5 text-gray-600"></i>
+                <span>Pengaturan</span>
+            </a>
+            <a href="#" onclick="logout()" class="nav-item flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-red-50 hover:text-red-600 transition">
+                <i class="fas fa-sign-out-alt w-5"></i>
+                <span>Logout</span>
+            </a>
+        </nav>
+
+        <!-- Sidebar Footer Stats -->
+        <div class="border-t border-gray-200 p-4 space-y-3">
+            <div class="bg-gradient-to-br from-yellow-50 to-orange-50 rounded-lg p-3">
+                <p class="text-xs text-gray-600 mb-1"><i class="fas fa-bolt text-yellow-600 mr-2"></i>Hari Ini</p>
+                <p class="text-lg font-bold text-gray-900" id="todayCount">0</p>
+            </div>
+            <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg p-3">
+                <p class="text-xs text-gray-600 mb-1"><i class="fas fa-coins text-green-600 mr-2"></i>Omzet</p>
+                <p class="text-lg font-bold text-gray-900" id="todayRevenue">Rp 0</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Mobile Sidebar Toggle -->
+    <button id="sidebarToggle" class="fixed md:hidden bottom-6 right-6 z-30 w-14 h-14 bg-purple-600 hover:bg-purple-700 text-white rounded-full shadow-lg flex items-center justify-center transition">
+        <i class="fas fa-bars text-xl"></i>
+    </button>
+
+    <!-- Main Content -->
+    <main class="md:ml-72 min-h-screen">
+        <!-- Header -->
+        <header class="bg-white border-b border-gray-200 sticky top-0 z-20">
+            <div class="px-6 py-4 flex items-center justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900" id="pageTitle">Dashboard</h1>
+                    <nav class="breadcrumb text-sm text-gray-600 mt-1">
+                        <span id="breadcrumb">Dashboard</span>
+                    </nav>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="text-right hidden sm:block">
+                        <p class="text-sm font-semibold text-gray-900" id="currentDate">-</p>
+                        <p class="text-xs text-gray-500" id="currentTime">-</p>
+                    </div>
+                    <div class="w-10 h-10 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center text-white cursor-pointer hover:shadow-lg transition">
+                        <i class="fas fa-user"></i>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Page Content -->
+        <div class="p-6 space-y-6">
+            <!-- Dashboard Page -->
+            <div id="dashboardPage" class="space-y-6">
+                <!-- Quick Actions Bar -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <button onclick="navigateTo('new-transaction')" class="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-4 rounded-xl font-semibold flex items-center gap-3 hover:shadow-lg transform hover:scale-105 transition">
+                        <i class="fas fa-plus-circle text-xl"></i>
+                        <div class="text-left">
+                            <p class="text-sm opacity-90">Mulai Transaksi</p>
+                            <p class="text-lg font-bold">Transaksi Baru</p>
+                        </div>
+                    </button>
+                    <button onclick="navigateTo('camera-capture')" class="bg-gradient-to-r from-green-600 to-green-700 text-white px-6 py-4 rounded-xl font-semibold flex items-center gap-3 hover:shadow-lg transform hover:scale-105 transition">
+                        <i class="fas fa-camera text-xl"></i>
+                        <div class="text-left">
+                            <p class="text-sm opacity-90">Ambil Foto</p>
+                            <p class="text-lg font-bold">Scan Plat Nomor</p>
+                        </div>
+                    </button>
+                </div>
+
+                <!-- Statistics Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <!-- Revenue Card -->
+                    <div class="stat-card bg-white rounded-xl shadow p-6 border-l-4 border-blue-500">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600">
+                                <i class="fas fa-money-bill-wave text-xl"></i>
+                            </div>
+                            <span class="bg-blue-100 text-blue-600 text-xs font-semibold px-3 py-1 rounded-full">Hari Ini</span>
+                        </div>
+                        <p class="text-gray-600 text-sm font-medium mb-2">Omzet Hari Ini</p>
+                        <p class="text-3xl font-bold text-gray-900" id="todayRevenueCard">Rp 0</p>
+                        <p class="text-xs text-green-600 mt-2"><i class="fas fa-arrow-up"></i> <span id="revenueChange">0%</span> dari kemarin</p>
+                    </div>
+
+                    <!-- Transactions Card -->
+                    <div class="stat-card bg-white rounded-xl shadow p-6 border-l-4 border-green-500">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center text-green-600">
+                                <i class="fas fa-shopping-cart text-xl"></i>
+                            </div>
+                            <span class="bg-green-100 text-green-600 text-xs font-semibold px-3 py-1 rounded-full">Total</span>
+                        </div>
+                        <p class="text-gray-600 text-sm font-medium mb-2">Transaksi Hari Ini</p>
+                        <p class="text-3xl font-bold text-gray-900" id="todayTransactions">0</p>
+                        <p class="text-xs text-blue-600 mt-2"><i class="fas fa-users"></i> <span id="customerCount">0</span> pelanggan</p>
+                    </div>
+
+                    <!-- Commission Card -->
+                    <div class="stat-card bg-white rounded-xl shadow p-6 border-l-4 border-orange-500">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center text-orange-600">
+                                <i class="fas fa-percentage text-xl"></i>
+                            </div>
+                            <span class="bg-orange-100 text-orange-600 text-xs font-semibold px-3 py-1 rounded-full">30%</span>
+                        </div>
+                        <p class="text-gray-600 text-sm font-medium mb-2">Komisi Operator</p>
+                        <p class="text-3xl font-bold text-gray-900" id="todayCommission">Rp 0</p>
+                        <p class="text-xs text-indigo-600 mt-2"><i class="fas fa-user-friends"></i> <span id="operatorCount">0</span> operator</p>
+                    </div>
+
+                    <!-- Members Card -->
+                    <div class="stat-card bg-white rounded-xl shadow p-6 border-l-4 border-purple-500">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center text-purple-600">
+                                <i class="fas fa-crown text-xl"></i>
+                            </div>
+                            <span class="bg-purple-100 text-purple-600 text-xs font-semibold px-3 py-1 rounded-full">Member</span>
+                        </div>
+                        <p class="text-gray-600 text-sm font-medium mb-2">Member Aktif</p>
+                        <p class="text-3xl font-bold text-gray-900" id="activeMembers">0</p>
+                        <p class="text-xs text-pink-600 mt-2"><i class="fas fa-gift"></i> <span id="freeWashAvailable">0</span> gratis</p>
+                    </div>
+                </div>
+
+                <!-- Charts Section -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Revenue Chart -->
+                    <div class="lg:col-span-2 bg-white rounded-xl shadow p-6">
+                        <div class="flex items-center justify-between mb-6">
+                            <div>
+                                <h3 class="text-lg font-bold text-gray-900">
+                                    <i class="fas fa-chart-line text-blue-600 mr-2"></i>Omzet 7 Hari Terakhir
+                                </h3>
+                            </div>
+                            <select id="chartPeriod" class="text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-purple-500">
+                                <option value="7days">7 Hari</option>
+                                <option value="30days">30 Hari</option>
+                                <option value="month">Bulan Ini</option>
+                            </select>
+                        </div>
+                        <div class="h-80">
+                            <canvas id="revenueChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Motorcycle Type Chart -->
+                    <div class="bg-white rounded-xl shadow p-6">
+                        <h3 class="text-lg font-bold text-gray-900 mb-6">
+                            <i class="fas fa-chart-pie text-green-600 mr-2"></i>Jenis Motor
+                        </h3>
+                        <div class="h-80">
+                            <canvas id="motorcycleChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Recent Transactions -->
+                <div class="bg-white rounded-xl shadow overflow-hidden">
+                    <div class="p-6 border-b border-gray-200 flex items-center justify-between">
+                        <h3 class="text-lg font-bold text-gray-900">
+                            <i class="fas fa-clock text-orange-600 mr-2"></i>Transaksi Terbaru
+                        </h3>
+                        <a href="#transactions" onclick="navigateTo('transactions'); return false;" class="text-purple-600 hover:text-purple-700 text-sm font-semibold">Lihat Semua →</a>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-50 border-b border-gray-200">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Waktu</th>
+                                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Plat Nomor</th>
+                                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Pelanggan</th>
+                                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Jenis Cuci</th>
+                                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Harga</th>
+                                    <th class="px-6 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recentTransactions" class="divide-y divide-gray-200">
+                                <tr>
+                                    <td colspan="6" class="px-6 py-8 text-center">
+                                        <i class="fas fa-inbox text-4xl text-gray-300 mb-2"></i>
+                                        <p class="text-gray-500">Belum ada transaksi hari ini</p>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Other pages will be loaded here -->
+        </div>
+    </main>
+
+    <script src="../js/auth-guard.js"></script>
+    <script src="../js/api-client.js"></script>
+    <script src="../js/session-persistence.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/dashboard.js"></script>
+    <script src="../js/utils.js"></script>
+    <script>
+        // Sidebar toggle
+        document.getElementById('sidebarToggle').addEventListener('click', () => {
+            const sidebar = document.getElementById('sidebar');
+            sidebar.classList.toggle('-translate-x-full');
+        });
+
+        // Navigate to page - defined in dashboard.js
+        // This function is already loaded from dashboard.js
+        
+        // Handle hash navigation
+        function handleHashNavigation() {
+            const hash = window.location.hash.substring(1); // Remove # from hash
+            if (hash && hash !== 'dashboard') {
+                // Navigate to the proper page
+                if (typeof window.navigateTo === 'function') {
+                    window.navigateTo(hash);
+                }
+            }
+        }
+        
+        // Listen for hash changes
+        window.addEventListener('hashchange', handleHashNavigation);
+        
+        // Handle initial hash on page load
+        if (window.location.hash && window.location.hash !== '#dashboard') {
+            handleHashNavigation();
+        }
+
+        // Logout
+        function logout() {
+            localStorage.removeItem('token');
+            window.location.href = '../index.html';
+        }
+
+        // Update date and time
+        function updateDateTime() {
+            const now = new Date();
+            const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const timeOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit' };
+            document.getElementById('currentDate').textContent = now.toLocaleDateString('id-ID', dateOptions);
+            document.getElementById('currentTime').textContent = now.toLocaleTimeString('id-ID', timeOptions);
+        }
+        updateDateTime();
+        setInterval(updateDateTime, 1000);
+    </script>
+</body>
+</html>

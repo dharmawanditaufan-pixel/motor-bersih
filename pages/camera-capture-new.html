@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scan Plat Nomor - Motor Bersih POS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Tesseract.js for OCR -->
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
+    <style>
+        .camera-preview {
+            position: relative;
+            background: #000;
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+        
+        .camera-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            height: 30%;
+            border: 3px dashed #a78bfa;
+            border-radius: 0.5rem;
+            pointer-events: none;
+            z-index: 10;
+        }
+        
+        .scan-line {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #a78bfa, transparent);
+            animation: scan 2s linear infinite;
+        }
+        
+        @keyframes scan {
+            0%, 100% { top: 0; }
+            50% { top: 100%; }
+        }
+        
+        .thumbnail {
+            max-width: 100%;
+            max-height: 200px;
+            object-fit: contain;
+        }
+        
+        #cameraFeed {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Loading Overlay -->
+    <div id="loadingOverlay" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50" style="display: none;">
+        <div class="bg-white rounded-lg p-8 text-center max-w-sm">
+            <div class="animate-spin rounded-full h-16 w-16 border-b-4 border-purple-600 mx-auto mb-4"></div>
+            <p class="text-lg font-semibold text-gray-900" id="loadingText">Memproses gambar...</p>
+            <p class="text-sm text-gray-600 mt-2" id="loadingProgress">0%</p>
+        </div>
+    </div>
+
+    <div class="max-w-6xl mx-auto py-8 px-4">
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-8">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">
+                    <i class="fas fa-camera text-purple-600 mr-3"></i>Scan Plat Nomor
+                </h1>
+                <p class="text-gray-600 mt-1">Gunakan kamera atau upload gambar untuk scan plat nomor otomatis</p>
+            </div>
+            <a href="register-wash.html" class="flex items-center gap-2 px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition shadow-sm">
+                <i class="fas fa-arrow-left"></i> Kembali
+            </a>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Camera/Upload Section -->
+            <div class="lg:col-span-2 space-y-4">
+                <!-- Camera Preview -->
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-xl font-bold text-gray-900">
+                            <i class="fas fa-video text-purple-600 mr-2"></i>Preview Kamera
+                        </h2>
+                        <div class="flex gap-2">
+                            <button id="switchCameraBtn" class="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm">
+                                <i class="fas fa-sync-alt mr-1"></i>Ganti
+                            </button>
+                            <button id="startCameraBtn" class="px-3 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition text-sm font-semibold">
+                                <i class="fas fa-play mr-1"></i>Mulai Kamera
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="camera-preview aspect-video relative">
+                        <video id="cameraFeed" autoplay playsinline class="hidden"></video>
+                        <div id="cameraPlaceholder" class="absolute inset-0 flex flex-col items-center justify-center text-white">
+                            <i class="fas fa-camera text-6xl mb-4 opacity-50"></i>
+                            <p class="text-lg">Klik "Mulai Kamera" untuk mengaktifkan</p>
+                            <p class="text-sm opacity-75 mt-2">Atau upload gambar dibawah</p>
+                        </div>
+                        <div id="cameraOverlay" class="camera-overlay hidden">
+                            <div class="scan-line"></div>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-3 mt-4">
+                        <button id="captureBtn" class="flex-1 px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-semibold disabled:bg-gray-300 disabled:cursor-not-allowed" disabled>
+                            <i class="fas fa-camera mr-2"></i>Ambil Foto
+                        </button>
+                        <button id="uploadBtn" class="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold">
+                            <i class="fas fa-upload mr-2"></i>Upload Gambar
+                        </button>
+                        <input type="file" id="fileInput" accept="image/*" class="hidden">
+                    </div>
+                </div>
+
+                <!-- Captured/Uploaded Image -->
+                <div id="capturedSection" class="bg-white rounded-xl shadow-lg p-6 hidden">
+                    <h3 class="text-lg font-bold text-gray-900 mb-4">
+                        <i class="fas fa-image text-blue-600 mr-2"></i>Gambar yang Diproses
+                    </h3>
+                    <div class="bg-gray-100 rounded-lg p-4 text-center">
+                        <img id="capturedImage" class="thumbnail mx-auto rounded-lg shadow">
+                        <canvas id="imageCanvas" class="hidden"></canvas>
+                    </div>
+                    <div class="flex gap-2 mt-4">
+                        <button id="scanAgainBtn" class="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition">
+                            <i class="fas fa-redo mr-2"></i>Scan Lagi
+                        </button>
+                        <button id="manualInputBtn" class="flex-1 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition">
+                            <i class="fas fa-keyboard mr-2"></i>Input Manual
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Section -->
+            <div class="space-y-4">
+                <!-- Scan Results -->
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h2 class="text-xl font-bold text-gray-900 mb-4">
+                        <i class="fas fa-list-check text-green-600 mr-2"></i>Hasil Scan
+                    </h2>
+                    
+                    <div id="noResults" class="text-center py-8 text-gray-500">
+                        <i class="fas fa-search text-5xl mb-3 block opacity-30"></i>
+                        <p class="text-sm">Belum ada hasil scan</p>
+                        <p class="text-xs mt-1 opacity-75">Ambil foto atau upload gambar plat nomor</p>
+                    </div>
+
+                    <!-- Success Result -->
+                    <div id="successResult" class="hidden">
+                        <div class="bg-green-50 border-2 border-green-200 rounded-lg p-4 mb-4">
+                            <div class="flex items-center gap-2 mb-3">
+                                <i class="fas fa-check-circle text-green-600 text-2xl"></i>
+                                <h3 class="font-bold text-green-900">Plat Terdeteksi!</h3>
+                            </div>
+                            
+                            <div class="space-y-2 text-sm">
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Nomor Plat:</span>
+                                    <strong id="detectedPlate" class="text-gray-900 text-lg font-bold">-</strong>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Akurasi:</span>
+                                    <strong id="confidence" class="text-gray-900">0%</strong>
+                                </div>
+                                <div class="flex justify-between">
+                                    <span class="text-gray-600">Status:</span>
+                                    <span id="validationStatus" class="font-semibold">-</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Edit Section -->
+                        <div class="mb-4">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                <i class="fas fa-edit text-purple-600 mr-1"></i>Edit Plat Nomor
+                            </label>
+                            <input type="text" id="editPlateInput" 
+                                class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 text-center text-xl font-bold uppercase"
+                                placeholder="B 1234 ABC"
+                                pattern="[A-Z]{1,2}\s?\d{1,4}\s?[A-Z]{1,3}">
+                            <p class="text-xs text-gray-500 mt-1 text-center">Format: B 1234 ABC</p>
+                        </div>
+
+                        <button id="usePlateBtn" class="w-full px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-semibold text-lg">
+                            <i class="fas fa-check mr-2"></i>Gunakan Plat Nomor Ini
+                        </button>
+                    </div>
+
+                    <!-- Error Result -->
+                    <div id="errorResult" class="hidden">
+                        <div class="bg-red-50 border-2 border-red-200 rounded-lg p-4 mb-4">
+                            <div class="flex items-center gap-2 mb-2">
+                                <i class="fas fa-exclamation-circle text-red-600 text-2xl"></i>
+                                <h3 class="font-bold text-red-900">Gagal Mendeteksi</h3>
+                            </div>
+                            <p class="text-sm text-red-700" id="errorMessage">Plat nomor tidak terdeteksi dengan jelas</p>
+                        </div>
+
+                        <div class="mb-4">
+                            <label class="block text-sm font-semibold text-gray-700 mb-2">
+                                <i class="fas fa-keyboard text-gray-600 mr-1"></i>Input Manual Plat Nomor
+                            </label>
+                            <input type="text" id="manualPlateInput" 
+                                class="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:outline-none focus:border-purple-500 text-center text-xl font-bold uppercase"
+                                placeholder="B 1234 ABC"
+                                pattern="[A-Z]{1,2}\s?\d{1,4}\s?[A-Z]{1,3}">
+                        </div>
+
+                        <button id="useManualPlateBtn" class="w-full px-4 py-3 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition font-semibold">
+                            <i class="fas fa-check mr-2"></i>Gunakan Input Manual
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tips -->
+                <div class="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                    <h3 class="font-bold text-blue-900 mb-2 flex items-center">
+                        <i class="fas fa-lightbulb text-blue-600 mr-2"></i>Tips
+                    </h3>
+                    <ul class="text-sm text-blue-800 space-y-1">
+                        <li>• Pastikan pencahayaan cukup</li>
+                        <li>• Plat nomor tidak terhalang</li>
+                        <li>• Jarak kamera tidak terlalu jauh</li>
+                        <li>• Fokus pada plat nomor</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/auth-guard.js"></script>
+    <script src="../js/api-client.js"></script>
+    <script src="../js/session-persistence.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/plate-scanner.js"></script>
+</body>
+</html>

@@ -1,0 +1,28 @@
+{
+  "customers": [
+    {
+      "id": "CUST001",
+      "name": "Andi Wijaya",
+      "phone": "081234567892",
+      "license_plate": "B 1234 ABC",
+      "motorcycle_type": "Honda Beat",
+      "is_member": true,
+      "member_since": "2024-01-10",
+      "wash_count": 3,
+      "free_wash_available": false,
+      "last_wash": "2024-01-25",
+      "photo_url": "assets/images/plates/B-1234-ABC.jpg"
+    },
+    {
+      "id": "CUST002",
+      "name": "Siti Rahma",
+      "phone": "081234567893",
+      "license_plate": "B 5678 XYZ",
+      "motorcycle_type": "Yamaha NMAX",
+      "is_member": false,
+      "wash_count": 1,
+      "free_wash_available": false,
+      "last_wash": "2024-01-20"
+    }
+  ]
+}

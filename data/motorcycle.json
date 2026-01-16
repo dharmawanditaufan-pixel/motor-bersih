@@ -1,0 +1,69 @@
+{
+  "motorcycle_types": [
+    {
+      "id": "TYPE001",
+      "name": "Matic",
+      "description": "Motor matic semua jenis",
+      "wash_types": [
+        {
+          "id": "REGULAR",
+          "name": "Cuci Regular",
+          "price": 25000,
+          "duration": "30 menit"
+        },
+        {
+          "id": "PREMIUM",
+          "name": "Cuci Premium",
+          "price": 35000,
+          "duration": "45 menit",
+          "includes": ["Cuci body", "Vacuum interior", "Wax ringan"]
+        },
+        {
+          "id": "DETAIL",
+          "name": "Cuci Detail",
+          "price": 50000,
+          "duration": "60 menit",
+          "includes": ["Semua cuci premium", "Poles ringan", "Bersihkan mesin"]
+        }
+      ]
+    },
+    {
+      "id": "TYPE002",
+      "name": "Sport",
+      "description": "Motor sport/bebek",
+      "wash_types": [
+        {
+          "id": "REGULAR",
+          "name": "Cuci Regular",
+          "price": 30000,
+          "duration": "35 menit"
+        },
+        {
+          "id": "PREMIUM",
+          "name": "Cuci Premium",
+          "price": 40000,
+          "duration": "50 menit"
+        }
+      ]
+    },
+    {
+      "id": "TYPE003",
+      "name": "Big Bike",
+      "description": "Motor besar >250cc",
+      "wash_types": [
+        {
+          "id": "REGULAR",
+          "name": "Cuci Regular",
+          "price": 50000,
+          "duration": "45 menit"
+        },
+        {
+          "id": "PREMIUM",
+          "name": "Cuci Premium",
+          "price": 75000,
+          "duration": "60 menit"
+        }
+      ]
+    }
+  ]
+}

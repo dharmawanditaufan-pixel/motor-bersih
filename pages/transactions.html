@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Riwayat Transaksi - Motor Bersih POS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-50">
+    <div class="max-w-5xl mx-auto py-10 px-6">
+        <div class="flex items-center justify-between mb-6">
+            <div>
+                <p class="text-sm text-purple-600 font-semibold">Motor Bersih POS</p>
+                <h1 class="text-3xl font-bold text-gray-900">Riwayat Transaksi</h1>
+                <p class="text-gray-600 mt-1">Halaman ini masih dalam pengembangan, namun sudah tersedia tanpa error 404.</p>
+            </div>
+            <a href="dashboard.html" class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 shadow-sm">
+                <i class="fas fa-arrow-left"></i> Kembali ke Dashboard
+            </a>
+        </div>
+
+        <div class="bg-white rounded-xl shadow p-6 border border-gray-100">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-12 h-12 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center">
+                    <i class="fas fa-history text-xl"></i>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-500">Status</p>
+                    <p class="text-base font-semibold text-gray-900">Tersedia (Placeholder)</p>
+                </div>
+            </div>
+            <p class="text-gray-600">Untuk saat ini, data transaksi dapat diakses melalui dashboard. Navigasi ini disediakan agar tidak muncul pesan <em>Not Found</em>.</p>
+            <div class="mt-4 flex flex-wrap gap-3">
+                <a href="register-wash.html" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700">Buat Transaksi Baru</a>
+                <a href="dashboard.html" class="px-4 py-2 bg-gray-100 text-gray-800 rounded-lg hover:bg-gray-200">Lihat Dashboard</a>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/api-client.js"></script>
+    <script src="../js/auth.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const auth = window.authManager || window.AuthManager?.getInstance?.();
+            if (auth && !auth.checkAuth()) {
+                return;
+            }
+        });
+    </script>
+</body>
+</html>

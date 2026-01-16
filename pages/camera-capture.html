@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
++
+    <title>Scan Plat Nomor - Motor Bersih POS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-50">
+    <div class="max-w-6xl mx-auto py-8 px-4">
+        <div class="flex items-center justify-between mb-8">
+            <h1 class="text-3xl font-bold text-gray-900"><i class="fas fa-camera text-purple-600 mr-3"></i>Scan Plat Nomor</h1>
+            <a href="dashboard.html" class="flex items-center gap-2 px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">
+                <i class="fas fa-arrow-left"></i> Kembali
+            </a>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Camera Section -->
+            <div class="lg:col-span-2 bg-white rounded-xl shadow-lg p-6">
+                <h2 class="text-xl font-bold text-gray-900 mb-4">Camera Preview</h2>
+                <div class="bg-black rounded-lg overflow-hidden aspect-video flex items-center justify-center">
+                    <video id="cameraFeed" autoplay playsinline class="w-full h-full object-cover hidden"></video>
+                    <div id="placeholderCamera" class="text-center text-white">
+                        <i class="fas fa-camera text-5xl mb-4 block opacity-50"></i>
+                        <p>Kamera tidak tersedia. Upload gambar plat nomor.</p>
+                    </div>
+                </div>
+
+                <div class="flex gap-3 mt-6">
+                    <button class="flex-1 px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-semibold">
+                        <i class="fas fa-camera mr-2"></i>Ambil Foto
+                    </button>
+                    <button id="uploadButton" class="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold">
+                        <i class="fas fa-upload mr-2"></i>Upload Gambar
+                    </button>
+                    <input type="file" id="fileInput" accept="image/*" style="display: none;">
+                </div>
+            </div>
+
+            <!-- Results Section -->
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h2 class="text-xl font-bold text-gray-900 mb-4">Hasil Scan</h2>
+                <div id="scanResults" class="space-y-4">
+                    <div class="text-center py-8 text-gray-500">
+                        <i class="fas fa-search text-4xl mb-2 block opacity-50"></i>
+                        <p class="text-sm">Belum ada hasil scan</p>
+                    </div>
+                </div>
+
+                <div id="plateInfo" class="hidden mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <h3 class="font-semibold text-green-900 mb-2"><i class="fas fa-check-circle text-green-600 mr-2"></i>Plat Ditemukan</h3>
+                    <div class="text-sm space-y-1">
+                        <p><span class="text-gray-600">Nomor Plat:</span> <strong id="detectedPlate">-</strong></p>
+                        <p><span class="text-gray-600">Kepercayaan:</span> <strong id="confidence">0%</strong></p>
+                    </div>
+                    <button class="w-full mt-3 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-semibold">
+                        <i class="fas fa-arrow-right mr-2"></i>Gunakan
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="../js/api-client.js"></script>
+    <script src="../js/auth.js"></script>
+    <script src="../js/camera.js"></script>
+    <script src="../js/utils.js"></script>
+</body>
+</html>

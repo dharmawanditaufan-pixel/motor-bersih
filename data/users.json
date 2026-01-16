@@ -1,0 +1,29 @@
+{
+  "users": [
+    {
+      "id": "USR001",
+      "username": "admin",
+      "password": "admin123",
+      "name": "Administrator",
+      "role": "admin",
+      "phone": "081234567890",
+      "created_at": "2024-01-01T00:00:00Z"
+    },
+    {
+      "id": "OPR001",
+      "username": "operator1",
+      "password": "op123",
+      "name": "Budi Santoso",
+      "role": "operator",
+      "phone": "081234567891",
+      "commission_rate": 30,
+      "total_commission": 1500000,
+      "created_at": "2024-01-15T00:00:00Z"
+    }
+  ],
+  "settings": {
+    "commission_rate": 30,
+    "free_wash_after": 5,
+    "whatsapp_api_key": "YOUR_WHATSAPP_API_KEY"
+  }
+}

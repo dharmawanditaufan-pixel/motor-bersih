@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Testing - Motor Bersih POS</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gradient-to-br from-slate-900 to-slate-800 min-h-screen p-6">
+    <div class="max-w-4xl mx-auto">
+        <div class="bg-white rounded-lg shadow-2xl p-8">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">
+                <i class="fas fa-flask mr-2"></i>API Testing Dashboard
+            </h1>
+            <p class="text-gray-600 mb-6">Test Motor Bersih POS API Endpoints</p>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Test 1: API Status -->
+                <div class="border rounded-lg p-6">
+                    <h3 class="text-lg font-bold mb-4">
+                        <i class="fas fa-heartbeat text-green-600 mr-2"></i>API Status
+                    </h3>
+                    <button onclick="testStatus()" class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">
+                        Test API Status
+                    </button>
+                    <pre id="statusResult" class="mt-4 bg-gray-100 p-4 rounded text-sm overflow-auto max-h-48 hidden"></pre>
+                </div>
+
+                <!-- Test 2: Database Connection -->
+                <div class="border rounded-lg p-6">
+                    <h3 class="text-lg font-bold mb-4">
+                        <i class="fas fa-database text-blue-600 mr-2"></i>Database
+                    </h3>
+                    <button onclick="testDatabase()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+                        Check Database
+                    </button>
+                    <pre id="dbResult" class="mt-4 bg-gray-100 p-4 rounded text-sm overflow-auto max-h-48 hidden"></pre>
+                </div>
+
+                <!-- Test 3: Login Test -->
+                <div class="border rounded-lg p-6">
+                    <h3 class="text-lg font-bold mb-4">
+                        <i class="fas fa-sign-in-alt text-purple-600 mr-2"></i>Login Test
+                    </h3>
+                    <button onclick="testLogin()" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded">
+                        Test Login
+                    </button>
+                    <pre id="loginResult" class="mt-4 bg-gray-100 p-4 rounded text-sm overflow-auto max-h-48 hidden"></pre>
+                </div>
+
+                <!-- Test 4: Dashboard Data -->
+                <div class="border rounded-lg p-6">
+                    <h3 class="text-lg font-bold mb-4">
+                        <i class="fas fa-chart-bar text-orange-600 mr-2"></i>Dashboard API
+                    </h3>
+                    <button onclick="testDashboard()" class="w-full bg-orange-600 hover:bg-orange-700 text-white font-bold py-2 px-4 rounded">
+                        Get Dashboard Data
+                    </button>
+                    <pre id="dashboardResult" class="mt-4 bg-gray-100 p-4 rounded text-sm overflow-auto max-h-48 hidden"></pre>
+                </div>
+            </div>
+
+            <div class="mt-8 p-6 bg-blue-50 border border-blue-200 rounded">
+                <h4 class="font-bold text-blue-900 mb-2">📋 Test Results Summary</h4>
+                <div id="summary" class="text-sm text-blue-800">
+                    <p>Click buttons above to test API endpoints. Results will appear here.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Dynamic base URL detection
+        function getApiUrl() {
+            const pathArray = window.location.pathname.split('/').filter(p => p);
+            const appIndex = pathArray.indexOf('motor-bersih');
+            if (appIndex >= 0) {
+                const basePath = '/' + pathArray.slice(0, appIndex + 1).join('/');
+                return basePath + '/api/';
+            }
+            return '/api/';
+        }
+
+        const API_BASE = getApiUrl();
+        console.log('API Base URL:', API_BASE);
+
+        async function testStatus() {
+            const result = document.getElementById('statusResult');
+            result.classList.remove('hidden');
+            result.textContent = 'Testing...';
+
+            try {
+                const response = await fetch(API_BASE + 'status.php');
+                const data = await response.json();
+                result.textContent = JSON.stringify(data, null, 2);
+                updateSummary('✅ API Status OK', 'success');
+            } catch (error) {
+                result.textContent = 'ERROR: ' + error.message;
+                updateSummary('❌ API Status Failed', 'error');
+            }
+        }
+
+        async function testDatabase() {
+            const result = document.getElementById('dbResult');
+            result.classList.remove('hidden');
+            result.textContent = 'Testing...';
+
+            try {
+                const response = await fetch(API_BASE + 'status.php');
+                const data = await response.json();
+                if (data.success) {
+                    result.textContent = JSON.stringify({
+                        mysql_version: data.mysql_version,
+                        table_count: data.table_count,
+                        status: 'Connected'
+                    }, null, 2);
+                    updateSummary('✅ Database Connected', 'success');
+                } else {
+                    throw new Error(data.error);
+                }
+            } catch (error) {
+                result.textContent = 'ERROR: ' + error.message;
+                updateSummary('❌ Database Connection Failed', 'error');
+            }
+        }
+
+        async function testLogin() {
+            const result = document.getElementById('loginResult');
+            result.classList.remove('hidden');
+            result.textContent = 'Testing login with admin credentials...';
+
+            try {
+                const response = await fetch(API_BASE + 'auth.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: 'admin',
+                        password: 'admin123',
+                        role: 'admin'
+                    })
+                });
+
+                const data = await response.json();
+                result.textContent = JSON.stringify(data, null, 2);
+
+                if (data.success) {
+                    updateSummary('✅ Login Works', 'success');
+                    // Store token for dashboard test
+                    sessionStorage.setItem('testToken', data.token);
+                } else {
+                    updateSummary('❌ Login Failed: ' + (data.error || 'Unknown error'), 'error');
+                }
+            } catch (error) {
+                result.textContent = 'ERROR: ' + error.message;
+                updateSummary('❌ Login Error', 'error');
+            }
+        }
+
+        async function testDashboard() {
+            const result = document.getElementById('dashboardResult');
+            result.classList.remove('hidden');
+            result.textContent = 'Testing dashboard endpoint...';
+
+            try {
+                const token = sessionStorage.getItem('testToken');
+                if (!token) {
+                    throw new Error('No token found. Run login test first.');
+                }
+
+                const response = await fetch(API_BASE + 'dashboard.php', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': 'Bearer ' + token,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    // Format output to show summary
+                    const summary = {
+                        success: true,
+                        revenue: data.data.revenue,
+                        commission: data.data.commission,
+                        members: data.data.members,
+                        recent_transactions_count: data.data.recent_transactions.length
+                    };
+                    result.textContent = JSON.stringify(summary, null, 2);
+                    updateSummary('✅ Dashboard API Works', 'success');
+                } else {
+                    result.textContent = JSON.stringify(data, null, 2);
+                    updateSummary('⚠️ Dashboard API Error', 'warning');
+                }
+            } catch (error) {
+                result.textContent = 'ERROR: ' + error.message;
+                updateSummary('❌ Dashboard API Failed', 'error');
+            }
+        }
+
+        function updateSummary(message, type) {
+            const summary = document.getElementById('summary');
+            const colors = {
+                success: 'text-green-800 bg-green-50',
+                error: 'text-red-800 bg-red-50',
+                warning: 'text-yellow-800 bg-yellow-50'
+            };
+
+            const p = document.createElement('p');
+            p.className = colors[type] + ' p-2 rounded mb-2';
+            p.textContent = message;
+            summary.insertBefore(p, summary.firstChild);
+        }
+
+        // Auto-run tests on page load
+        console.log('Page loaded. API Base:', API_BASE);
+    </script>
+</body>
+</html>

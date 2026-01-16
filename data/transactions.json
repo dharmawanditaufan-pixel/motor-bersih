@@ -1,0 +1,44 @@
+{
+  "transactions": [
+    {
+      "id": "TRX20240125001",
+      "customer_id": "CUST001",
+      "customer_name": "Andi Wijaya",
+      "license_plate": "B 1234 ABC",
+      "motorcycle_type": "Honda Beat",
+      "wash_type": "Regular",
+      "price": 25000,
+      "operator_id": "OPR001",
+      "operator_name": "Budi Santoso",
+      "commission": 7500,
+      "is_free_wash": false,
+      "payment_method": "cash",
+      "status": "completed",
+      "created_at": "2024-01-25T10:30:00Z",
+      "completed_at": "2024-01-25T11:00:00Z"
+    },
+    {
+      "id": "TRX20240124001",
+      "customer_id": "CUST002",
+      "customer_name": "Siti Rahma",
+      "license_plate": "B 5678 XYZ",
+      "motorcycle_type": "Yamaha NMAX",
+      "wash_type": "Premium",
+      "price": 35000,
+      "operator_id": "OPR001",
+      "operator_name": "Budi Santoso",
+      "commission": 10500,
+      "is_free_wash": false,
+      "payment_method": "cash",
+      "status": "completed",
+      "created_at": "2024-01-24T14:15:00Z",
+      "completed_at": "2024-01-24T14:45:00Z"
+    }
+  ],
+  "summary": {
+    "total_transactions": 150,
+    "total_revenue": 3750000,
+    "total_commission": 1125000,
+    "total_free_washes": 12
+  }
+}

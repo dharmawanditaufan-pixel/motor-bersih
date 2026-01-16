@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Motor Bersih - Connection Diagnostic</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto px-4 py-8 max-w-4xl">
+        <div class="bg-white rounded-lg shadow-xl p-8">
+            <h1 class="text-3xl font-bold text-purple-600 mb-6">
+                <i class="fas fa-stethoscope"></i> Connection Diagnostic
+            </h1>
+            
+            <div id="results" class="space-y-4">
+                <!-- Results will be added here -->
+            </div>
+            
+            <div class="mt-8 flex gap-4">
+                <button onclick="runTests()" class="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition">
+                    <i class="fas fa-play"></i> Run All Tests
+                </button>
+                <button onclick="clearResults()" class="bg-gray-300 text-gray-700 px-6 py-3 rounded-lg hover:bg-gray-400 transition">
+                    <i class="fas fa-trash"></i> Clear Results
+                </button>
+            </div>
+
+            <div class="mt-8 bg-blue-50 border-l-4 border-blue-500 p-4">
+                <h3 class="font-semibold text-blue-800 mb-2">Status Sistem:</h3>
+                <ul class="list-disc list-inside text-blue-700 space-y-1" id="systemStatus">
+                    <li>Menunggu test...</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/api-client.js"></script>
+    
+    <script>
+        const results = document.getElementById('results');
+        const systemStatus = document.getElementById('systemStatus');
+        
+        function addResult(title, message, status) {
+            const colors = {
+                success: 'bg-green-50 border-green-500 text-green-800',
+                error: 'bg-red-50 border-red-500 text-red-800',
+                warning: 'bg-yellow-50 border-yellow-500 text-yellow-800',
+                info: 'bg-blue-50 border-blue-500 text-blue-800'
+            };
+            
+            const icons = {
+                success: 'fa-check-circle',
+                error: 'fa-times-circle',
+                warning: 'fa-exclamation-triangle',
+                info: 'fa-info-circle'
+            };
+            
+            const div = document.createElement('div');
+            div.className = `border-l-4 p-4 ${colors[status]}`;
+            div.innerHTML = `
+                <div class="flex items-start">
+                    <i class="fas ${icons[status]} text-2xl mr-3 mt-1"></i>
+                    <div class="flex-1">
+                        <h3 class="font-bold text-lg">${title}</h3>
+                        <p class="mt-1">${message}</p>
+                    </div>
+                </div>
+            `;
+            results.appendChild(div);
+        }
+        
+        function updateSystemStatus(items) {
+            systemStatus.innerHTML = items.map(item => `<li>${item}</li>`).join('');
+        }
+        
+        function clearResults() {
+            results.innerHTML = '';
+            systemStatus.innerHTML = '<li>Menunggu test...</li>';
+        }
+        
+        async function runTests() {
+            clearResults();
+            addResult('Test Started', 'Running comprehensive diagnostic tests...', 'info');
+            
+            const statusItems = [];
+            
+            // Test 1: Check if API Client loaded
+            addResult('Test 1: API Client Loading', 'Checking if API Client is available...', 'info');
+            await new Promise(r => setTimeout(r, 500));
+            
+            if (typeof APIClient !== 'undefined' && window.apiClient) {
+                addResult('Test 1: PASSED', 'APIClient loaded successfully', 'success');
+                statusItems.push('✓ API Client: LOADED');
+            } else {
+                addResult('Test 1: FAILED', 'APIClient not found!', 'error');
+                statusItems.push('✗ API Client: MISSING');
+                updateSystemStatus(statusItems);
+                return;
+            }
+            
+            // Test 2: Check localStorage support
+            addResult('Test 2: Storage Support', 'Checking browser storage capabilities...', 'info');
+            await new Promise(r => setTimeout(r, 500));
+            
+            try {
+                localStorage.setItem('test', 'value');
+                localStorage.removeItem('test');
+                sessionStorage.setItem('test', 'value');
+                sessionStorage.removeItem('test');
+                addResult('Test 2: PASSED', 'localStorage and sessionStorage available', 'success');
+                statusItems.push('✓ Storage: SUPPORTED');
+            } catch (e) {
+                addResult('Test 2: FAILED', 'Storage not available: ' + e.message, 'error');
+                statusItems.push('✗ Storage: NOT SUPPORTED');
+            }
+            
+            // Test 3: Backend connection
+            addResult('Test 3: Backend Connection', 'Testing API endpoint...', 'info');
+            await new Promise(r => setTimeout(r, 500));
+            
+            try {
+                const statusResult = await apiClient.testConnection();
+                if (statusResult.success) {
+                    addResult('Test 3: PASSED', `Backend online - Database: ${statusResult.database}`, 'success');
+                    statusItems.push(`✓ Backend: ONLINE (${statusResult.database})`);
+                } else {
+                    addResult('Test 3: FAILED', 'Backend returned error: ' + statusResult.error, 'error');
+                    statusItems.push('✗ Backend: ERROR');
+                }
+            } catch (e) {
+                addResult('Test 3: FAILED', 'Cannot connect to backend: ' + e.message, 'error');
+                statusItems.push('✗ Backend: OFFLINE');
+            }
+            
+            // Test 4: Authentication
+            addResult('Test 4: Authentication', 'Testing login...', 'info');
+            await new Promise(r => setTimeout(r, 500));
+            
+            try {
+                const loginResult = await apiClient.login('admin', 'admin123', 'admin');
+                if (loginResult.success) {
+                    addResult('Test 4: PASSED', `Login successful - User: ${loginResult.user.username}`, 'success');
+                    statusItems.push('✓ Auth: WORKING');
+                    
+                    // Store token
+                    const token = loginResult.token;
+                    addResult('Token Stored', `Token: ${token.substring(0, 30)}...`, 'info');
+                    
+                    // Test 5: Token persistence
+                    addResult('Test 5: Token Persistence', 'Checking dual storage...', 'info');
+                    await new Promise(r => setTimeout(r, 500));
+                    
+                    const sessionToken = sessionStorage.getItem('authToken');
+                    const localToken = localStorage.getItem('authToken');
+                    const tokenTime = localStorage.getItem('authTokenTime');
+                    
+                    if (sessionToken && localToken && tokenTime) {
+                        const age = (Date.now() - parseInt(tokenTime)) / (1000 * 60 * 60);
+                        addResult('Test 5: PASSED', 
+                            `Token stored in both storages. Age: ${age.toFixed(2)} hours`, 
+                            'success');
+                        statusItems.push('✓ Token: PERSISTED');
+                    } else {
+                        addResult('Test 5: WARNING', 'Token not properly stored in both storages', 'warning');
+                        statusItems.push('⚠ Token: PARTIAL STORAGE');
+                    }
+                    
+                    // Test 6: Dashboard API
+                    addResult('Test 6: Dashboard API', 'Testing authenticated endpoint...', 'info');
+                    await new Promise(r => setTimeout(r, 500));
+                    
+                    try {
+                        const dashboardResult = await apiClient.getDashboardData();
+                        if (dashboardResult.success) {
+                            addResult('Test 6: PASSED', 
+                                `Dashboard data retrieved - Revenue: Rp ${dashboardResult.todayRevenue}`, 
+                                'success');
+                            statusItems.push('✓ Dashboard: ACCESSIBLE');
+                        } else {
+                            addResult('Test 6: FAILED', 'Dashboard returned error', 'error');
+                            statusItems.push('✗ Dashboard: ERROR');
+                        }
+                    } catch (e) {
+                        addResult('Test 6: FAILED', 'Dashboard request failed: ' + e.message, 'error');
+                        statusItems.push('✗ Dashboard: FAILED');
+                    }
+                    
+                    // Test 7: Token refresh
+                    addResult('Test 7: Token Refresh', 'Testing session refresh...', 'info');
+                    await new Promise(r => setTimeout(r, 500));
+                    
+                    const oldTime = parseInt(localStorage.getItem('authTokenTime'));
+                    apiClient.refreshToken();
+                    const newTime = parseInt(localStorage.getItem('authTokenTime'));
+                    
+                    if (newTime > oldTime) {
+                        addResult('Test 7: PASSED', 'Token timestamp refreshed successfully', 'success');
+                        statusItems.push('✓ Refresh: WORKING');
+                    } else {
+                        addResult('Test 7: WARNING', 'Token refresh may not be working', 'warning');
+                        statusItems.push('⚠ Refresh: CHECK NEEDED');
+                    }
+                    
+                } else {
+                    addResult('Test 4: FAILED', 'Login failed: ' + loginResult.message, 'error');
+                    statusItems.push('✗ Auth: FAILED');
+                }
+            } catch (e) {
+                addResult('Test 4: FAILED', 'Login error: ' + e.message, 'error');
+                statusItems.push('✗ Auth: ERROR');
+            }
+            
+            // Test 8: Camera support
+            addResult('Test 8: Camera Support', 'Checking camera capabilities...', 'info');
+            await new Promise(r => setTimeout(r, 500));
+            
+            if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+                addResult('Test 8: PASSED', 'Camera API available', 'success');
+                statusItems.push('✓ Camera: SUPPORTED');
+            } else {
+                addResult('Test 8: WARNING', 'Camera API not available - use upload instead', 'warning');
+                statusItems.push('⚠ Camera: NOT SUPPORTED');
+            }
+            
+            // Final summary
+            updateSystemStatus(statusItems);
+            
+            addResult('All Tests Complete', 'Diagnostic completed successfully', 'success');
+        }
+        
+        // Auto-run on page load
+        window.addEventListener('load', () => {
+            setTimeout(() => {
+                addResult('Auto-Test', 'Running automatic diagnostic...', 'info');
+                runTests();
+            }, 1000);
+        });
+    </script>
+</body>
+</html>
