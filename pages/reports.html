@@ -8,44 +8,298 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="bg-gray-50">
-    <div class="max-w-5xl mx-auto py-10 px-6">
-        <div class="flex items-center justify-between mb-6">
-            <div>
-                <p class="text-sm text-purple-600 font-semibold">Motor Bersih POS</p>
-                <h1 class="text-3xl font-bold text-gray-900">Laporan</h1>
-                <p class="text-gray-600 mt-1">Halaman laporan placeholder. Tidak lagi memunculkan pesan Not Found.</p>
-            </div>
-            <a href="dashboard.html" class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 shadow-sm">
-                <i class="fas fa-arrow-left"></i> Kembali ke Dashboard
+    <div class="max-w-7xl mx-auto py-8 px-4">
+        <!-- Header -->
+        <div class="flex items-center justify-between mb-8">
+            <h1 class="text-3xl font-bold text-gray-900">
+                <i class="fas fa-chart-line text-purple-600 mr-3"></i>Laporan
+            </h1>
+            <a href="dashboard.html" class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">
+                <i class="fas fa-arrow-left mr-2"></i> Kembali
             </a>
         </div>
 
-        <div class="bg-white rounded-xl shadow p-6 border border-gray-100">
-            <div class="flex items-center gap-3 mb-4">
-                <div class="w-12 h-12 rounded-full bg-cyan-100 text-cyan-600 flex items-center justify-center">
-                    <i class="fas fa-chart-bar text-xl"></i>
+        <!-- Tab Navigation -->
+        <div class="mb-6 border-b border-gray-200">
+            <nav class="flex space-x-8">
+                <button onclick="switchTab('transaksi')" id="tabTransaksi" class="tab-button active py-4 px-2 border-b-2 font-medium text-sm">
+                    <i class="fas fa-dollar-sign mr-2"></i>Laporan Transaksi
+                </button>
+                <button onclick="switchTab('absensi')" id="tabAbsensi" class="tab-button py-4 px-2 border-b-2 font-medium text-sm">
+                    <i class="fas fa-user-clock mr-2"></i>Laporan Absensi
+                </button>
+            </nav>
+        </div>
+
+        <!-- Transaksi Tab -->
+        <div id="contentTransaksi" class="tab-content">
+            <!-- Filter Section -->
+            <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                <h2 class="text-xl font-bold text-gray-900 mb-4">
+                    <i class="fas fa-filter text-purple-600 mr-2"></i>Filter Laporan
+                </h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <!-- Periode Filter -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Periode</label>
+                        <select id="periodFilter" onchange="applyFilter()" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                            <option value="today">Hari Ini</option>
+                            <option value="week">Minggu Ini</option>
+                            <option value="month">Bulan Ini</option>
+                            <option value="year">Tahun Ini</option>
+                            <option value="custom">Custom Range</option>
+                        </select>
+                    </div>
+
+                    <!-- Start Date -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal Mulai</label>
+                        <input type="date" id="startDate" onchange="applyFilter()" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                    </div>
+
+                    <!-- End Date -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Tanggal Akhir</label>
+                        <input type="date" id="endDate" onchange="applyFilter()" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                    </div>
+
+                    <!-- Motor Type Filter -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Tipe Motor</label>
+                        <select id="motorTypeFilter" onchange="applyFilter()" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                            <option value="">Semua Tipe</option>
+                            <option value="motor_kecil">Motor Kecil</option>
+                            <option value="motor_sedang">Motor Sedang</option>
+                            <option value="motor_besar">Motor Besar</option>
+                        </select>
+                    </div>
                 </div>
-                <div>
-                    <p class="text-sm text-gray-500">Status</p>
-                    <p class="text-base font-semibold text-gray-900">Tersedia (Placeholder)</p>
+
+                <div class="flex gap-3 mt-4">
+                    <button onclick="applyFilter()" class="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-semibold">
+                        <i class="fas fa-search mr-2"></i>Tampilkan
+                    </button>
+                    <button onclick="resetFilter()" class="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition font-semibold">
+                        <i class="fas fa-undo mr-2"></i>Reset
+                    </button>
+                    <button onclick="exportToExcel()" class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-semibold ml-auto">
+                        <i class="fas fa-file-excel mr-2"></i>Export Excel
+                    </button>
                 </div>
             </div>
-            <p class="text-gray-600">Anda dapat menambahkan grafik, export CSV/PDF, atau filter tanggal di sini. Untuk saat ini, gunakan dashboard untuk ringkasan cepat.</p>
-            <div class="mt-4 flex flex-wrap gap-3">
-                <a href="dashboard.html" class="px-4 py-2 bg-gray-100 text-gray-800 rounded-lg hover:bg-gray-200">Lihat Dashboard</a>
+
+            <!-- Summary Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-600 mb-1">Total Transaksi</p>
+                            <p id="totalTransactions" class="text-2xl font-bold text-gray-900">0</p>
+                        </div>
+                        <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-receipt text-blue-600 text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-600 mb-1">Total Pendapatan</p>
+                            <p id="totalRevenue" class="text-2xl font-bold text-green-600">Rp 0</p>
+                        </div>
+                        <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-money-bill-wave text-green-600 text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-600 mb-1">Member Aktif</p>
+                            <p id="activeMemberCount" class="text-2xl font-bold text-purple-600">0</p>
+                        </div>
+                        <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-users text-purple-600 text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-600 mb-1">Rata-rata/Transaksi</p>
+                            <p id="avgTransaction" class="text-2xl font-bold text-orange-600">Rp 0</p>
+                        </div>
+                        <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-chart-bar text-orange-600 text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transaction Breakdown by Type -->
+            <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                <h2 class="text-xl font-bold text-gray-900 mb-4">Breakdown per Tipe Motor</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipe Motor</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Jumlah Cuci</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Harga/Unit</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Pendapatan</th>
+                            </tr>
+                        </thead>
+                        <tbody id="breakdownTableBody" class="divide-y divide-gray-200">
+                            <tr>
+                                <td colspan="4" class="px-6 py-8 text-center text-gray-500">Belum ada data</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Transaction List -->
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h2 class="text-xl font-bold text-gray-900 mb-4">Detail Transaksi</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">ID</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tanggal</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Plat Nomor</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Customer</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipe Motor</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Harga</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Operator</th>
+                            </tr>
+                        </thead>
+                        <tbody id="transactionTableBody" class="divide-y divide-gray-200">
+                            <tr>
+                                <td colspan="7" class="px-6 py-8 text-center text-gray-500">Belum ada data transaksi</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Absensi Tab -->
+        <div id="contentAbsensi" class="tab-content hidden">
+            <!-- Filter Section -->
+            <div class="bg-white rounded-xl shadow-lg p-6 mb-6">
+                <h2 class="text-xl font-bold text-gray-900 mb-4">
+                    <i class="fas fa-filter text-purple-600 mr-2"></i>Filter Absensi
+                </h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <!-- Operator Filter -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Operator</label>
+                        <select id="operatorFilter" onchange="loadAttendanceReport()" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                            <option value="">Semua Operator</option>
+                        </select>
+                    </div>
+
+                    <!-- Month Filter -->
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Bulan</label>
+                        <input type="month" id="monthFilter" onchange="loadAttendanceReport()" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                    </div>
+
+                    <!-- Export Button -->
+                    <div class="flex items-end">
+                        <button onclick="exportAttendanceToExcel()" class="w-full px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-semibold">
+                            <i class="fas fa-file-excel mr-2"></i>Export Excel
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Attendance Summary Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-600 mb-1">Total Hadir</p>
+                            <p id="totalPresent" class="text-2xl font-bold text-green-600">0</p>
+                        </div>
+                        <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-check-circle text-green-600 text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-600 mb-1">Terlambat</p>
+                            <p id="totalLate" class="text-2xl font-bold text-yellow-600">0</p>
+                        </div>
+                        <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-clock text-yellow-600 text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-600 mb-1">Tidak Hadir</p>
+                            <p id="totalAbsent" class="text-2xl font-bold text-red-600">0</p>
+                        </div>
+                        <div class="w-12 h-12 bg-red-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-times-circle text-red-600 text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-600 mb-1">Cuti</p>
+                            <p id="totalLeave" class="text-2xl font-bold text-blue-600">0</p>
+                        </div>
+                        <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-calendar-times text-blue-600 text-xl"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Attendance Detail Table -->
+            <div class="bg-white rounded-xl shadow-lg p-6">
+                <h2 class="text-xl font-bold text-gray-900 mb-4">Detail Absensi</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tanggal</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Operator</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Check In</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Check Out</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Durasi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="attendanceTableBody" class="divide-y divide-gray-200">
+                            <tr>
+                                <td colspan="6" class="px-6 py-8 text-center text-gray-500">Belum ada data absensi</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
 
     <script src="../js/api-client.js"></script>
     <script src="../js/auth.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const auth = window.authManager || window.AuthManager?.getInstance?.();
-            if (auth && !auth.checkAuth()) {
-                return;
-            }
-        });
-    </script>
+    <script src="../js/reports.js"></script>
+    <script src="../js/utils.js"></script>
 </body>
 </html>
