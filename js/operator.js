@@ -1,1329 +1,578 @@
 /**
- * Operators and Commission Management Module
- * Handles operator data, commission calculations, and payout
+ * Operator Management Module
+ * Handles operator CRUD, commission calculation (30%), and attendance tracking
  */
 
 class OperatorManager {
     constructor() {
+        this.apiClient = new APIClient();
         this.operators = [];
-        this.commissionRate = 30; // Default 30%
+        this.attendance = [];
+        this.commissions = [];
+        this.currentMonth = new Date().getMonth();
+        this.currentYear = new Date().getFullYear();
+        this.selectedOperatorId = null;
         this.init();
     }
 
-    async init() {
-        await this.loadOperators();
-        await this.loadSettings();
+    init() {
+        // Check auth
+        const auth = window.authManager || window.AuthManager?.getInstance?.();
+        if (auth && !auth.checkAuth()) {
+            return;
+        }
+
+        this.loadOperators();
         this.setupEventListeners();
+    }
+
+    setupEventListeners() {
+        // Search
+        const searchInput = document.getElementById('searchOperator');
+        if (searchInput) {
+            searchInput.addEventListener('input', (e) => this.filterOperators(e.target.value));
+        }
+
+        // Operator filter for attendance
+        const operatorFilter = document.getElementById('operatorFilter');
+        if (operatorFilter) {
+            operatorFilter.addEventListener('change', (e) => {
+                this.selectedOperatorId = e.target.value ? parseInt(e.target.value) : null;
+                this.renderCalendar();
+            });
+        }
+
+        // Month filter for commission
+        const monthFilter = document.getElementById('monthFilter');
+        if (monthFilter) {
+            monthFilter.addEventListener('change', () => this.loadCommissions());
+        }
     }
 
     async loadOperators() {
         try {
-            // Try to load from localStorage
-            const storedOperators = localStorage.getItem('motowash_operators');
+            const response = await this.apiClient.get('/operators');
             
-            if (storedOperators) {
-                this.operators = JSON.parse(storedOperators);
+            if (response.success) {
+                this.operators = response.data || [];
+                this.renderOperators();
+                this.updateStats();
+                this.populateOperatorFilter();
             } else {
-                // Load default operators
-                await this.loadDefaultOperators();
+                this.showError('Gagal memuat data operator');
             }
-            
-            console.log(`Loaded ${this.operators.length} operators`);
-            return this.operators;
-            
         } catch (error) {
             console.error('Error loading operators:', error);
-            this.operators = [];
-            return this.operators;
+            this.showError('Gagal memuat data operator: ' + error.message);
         }
     }
 
-    async loadDefaultOperators() {
-        // Default operators for demo
-        const defaultOperators = [
-            {
-                id: 'OPR001',
-                username: 'operator1',
-                password: 'op123',
-                name: 'Budi Santoso',
-                role: 'operator',
-                phone: '081234567891',
-                email: 'budi@motowash.id',
-                address: 'Jl. Merdeka No. 123, Jakarta',
-                idCard: '3271234567890123',
-                bankAccount: {
-                    bankName: 'BCA',
-                    accountNumber: '1234567890',
-                    accountName: 'BUDI SANTOSO'
-                },
-                commissionRate: 30,
-                baseSalary: 0,
-                totalCommission: 0,
-                pendingCommission: 0,
-                paidCommission: 0,
-                totalTransactions: 0,
-                status: 'active',
-                joinDate: '2024-01-15',
-                lastLogin: null,
-                performance: {
-                    avgRating: 4.5,
-                    totalWashes: 0,
-                    monthlyTarget: 100,
-                    monthlyAchievement: 0
-                },
-                schedule: {
-                    monday: { start: '08:00', end: '17:00' },
-                    tuesday: { start: '08:00', end: '17:00' },
-                    wednesday: { start: '08:00', end: '17:00' },
-                    thursday: { start: '08:00', end: '17:00' },
-                    friday: { start: '08:00', end: '17:00' },
-                    saturday: { start: '09:00', end: '15:00' },
-                    sunday: 'off'
-                }
-            },
-            {
-                id: 'OPR002',
-                username: 'operator2',
-                password: 'op456',
-                name: 'Siti Rahma',
-                role: 'operator',
-                phone: '081234567892',
-                email: 'siti@motowash.id',
-                address: 'Jl. Sudirman No. 456, Jakarta',
-                idCard: '3279876543210987',
-                bankAccount: {
-                    bankName: 'Mandiri',
-                    accountNumber: '0987654321',
-                    accountName: 'SITI RAHMA'
-                },
-                commissionRate: 30,
-                baseSalary: 0,
-                totalCommission: 0,
-                pendingCommission: 0,
-                paidCommission: 0,
-                totalTransactions: 0,
-                status: 'active',
-                joinDate: '2024-01-20',
-                lastLogin: null,
-                performance: {
-                    avgRating: 4.7,
-                    totalWashes: 0,
-                    monthlyTarget: 100,
-                    monthlyAchievement: 0
-                },
-                schedule: {
-                    monday: { start: '12:00', end: '21:00' },
-                    tuesday: { start: '12:00', end: '21:00' },
-                    wednesday: { start: '12:00', end: '21:00' },
-                    thursday: { start: '12:00', end: '21:00' },
-                    friday: { start: '12:00', end: '21:00' },
-                    saturday: { start: '09:00', end: '15:00' },
-                    sunday: 'off'
-                }
-            },
-            {
-                id: 'OPR003',
-                username: 'operator3',
-                password: 'op789',
-                name: 'Andi Wijaya',
-                role: 'operator',
-                phone: '081234567893',
-                email: 'andi@motowash.id',
-                address: 'Jl. Thamrin No. 789, Jakarta',
-                idCard: '3274567890123456',
-                bankAccount: {
-                    bankName: 'BRI',
-                    accountNumber: '5678901234',
-                    accountName: 'ANDI WIJAYA'
-                },
-                commissionRate: 30,
-                baseSalary: 0,
-                totalCommission: 0,
-                pendingCommission: 0,
-                paidCommission: 0,
-                totalTransactions: 0,
-                status: 'inactive',
-                joinDate: '2024-02-01',
-                lastLogin: null,
-                performance: {
-                    avgRating: 4.2,
-                    totalWashes: 0,
-                    monthlyTarget: 100,
-                    monthlyAchievement: 0
-                },
-                schedule: {
-                    monday: 'off',
-                    tuesday: 'off',
-                    wednesday: { start: '08:00', end: '17:00' },
-                    thursday: { start: '08:00', end: '17:00' },
-                    friday: { start: '08:00', end: '17:00' },
-                    saturday: { start: '09:00', end: '15:00' },
-                    sunday: { start: '09:00', end: '15:00' }
-                }
-            }
-        ];
-
-        this.operators = defaultOperators;
-        await this.saveOperators();
-        return this.operators;
-    }
-
-    async loadSettings() {
+    async loadAttendance() {
         try {
-            const settings = localStorage.getItem('motowash_settings');
-            if (settings) {
-                const parsed = JSON.parse(settings);
-                this.commissionRate = parsed.commission_rate || 30;
+            const response = await this.apiClient.get(`/attendance?month=${this.currentMonth + 1}&year=${this.currentYear}`);
+            
+            if (response.success) {
+                this.attendance = response.data || [];
+                this.renderCalendar();
+                this.renderAttendanceSummary();
             }
         } catch (error) {
-            console.error('Error loading settings:', error);
+            console.error('Error loading attendance:', error);
         }
     }
 
-    setupEventListeners() {
-        // Operator page specific listeners
-        if (document.getElementById('operatorPage')) {
-            this.setupOperatorPage();
-        }
-        
-        // Commission payout page
-        if (document.getElementById('commissionPage')) {
-            this.setupCommissionPage();
-        }
-        
-        // Schedule management page
-        if (document.getElementById('schedulePage')) {
-            this.setupSchedulePage();
-        }
-    }
-
-    setupOperatorPage() {
-        // Load operator list
-        this.loadOperatorList();
-        
-        // Add operator button
-        document.getElementById('addOperatorBtn')?.addEventListener('click', () => {
-            this.showOperatorForm();
-        });
-        
-        // Search operators
-        document.getElementById('searchOperators')?.addEventListener('input', (e) => {
-            this.searchOperators(e.target.value);
-        });
-        
-        // Export operators
-        document.getElementById('exportOperatorsBtn')?.addEventListener('click', () => {
-            this.exportOperatorsToExcel();
-        });
-    }
-
-    setupCommissionPage() {
-        // Load commission data
-        this.loadCommissionData();
-        
-        // Calculate commission button
-        document.getElementById('calculateCommissionBtn')?.addEventListener('click', () => {
-            this.calculateAllCommissions();
-        });
-        
-        // Process payout button
-        document.getElementById('processPayoutBtn')?.addEventListener('click', () => {
-            this.processCommissionPayout();
-        });
-        
-        // Date range filter
-        document.getElementById('commissionDateRange')?.addEventListener('change', () => {
-            this.filterCommissionByDate();
-        });
-    }
-
-    setupSchedulePage() {
-        // Load schedule
-        this.loadOperatorSchedule();
-        
-        // Update schedule button
-        document.getElementById('updateScheduleBtn')?.addEventListener('click', () => {
-            this.updateOperatorSchedule();
-        });
-        
-        // Print schedule
-        document.getElementById('printScheduleBtn')?.addEventListener('click', () => {
-            this.printSchedule();
-        });
-    }
-
-    // OPERATOR MANAGEMENT METHODS
-
-    async getOperators(filter = {}) {
-        let filtered = [...this.operators];
-        
-        // Apply filters
-        if (filter.status) {
-            filtered = filtered.filter(op => op.status === filter.status);
-        }
-        
-        if (filter.search) {
-            const searchTerm = filter.search.toLowerCase();
-            filtered = filtered.filter(op => 
-                op.name.toLowerCase().includes(searchTerm) ||
-                op.phone.includes(searchTerm) ||
-                op.email?.toLowerCase().includes(searchTerm)
-            );
-        }
-        
-        return filtered;
-    }
-
-    async getOperatorById(id) {
-        return this.operators.find(op => op.id === id);
-    }
-
-    async addOperator(operatorData) {
+    async loadCommissions() {
         try {
-            // Generate new ID
-            const newId = this.generateOperatorId();
+            const monthFilter = document.getElementById('monthFilter')?.value;
+            const endpoint = monthFilter === 'last' ? '/commissions?month=last' : '/commissions';
             
-            // Create operator object
-            const newOperator = {
-                id: newId,
-                ...operatorData,
-                commissionRate: this.commissionRate,
-                baseSalary: operatorData.baseSalary || 0,
-                totalCommission: 0,
-                pendingCommission: 0,
-                paidCommission: 0,
-                totalTransactions: 0,
-                status: 'active',
-                joinDate: new Date().toISOString().split('T')[0],
-                lastLogin: null,
-                performance: {
-                    avgRating: 0,
-                    totalWashes: 0,
-                    monthlyTarget: 100,
-                    monthlyAchievement: 0
-                },
-                schedule: this.getDefaultSchedule()
-            };
+            const response = await this.apiClient.get(endpoint);
             
-            // Add to list
-            this.operators.push(newOperator);
-            
-            // Save to storage
-            await this.saveOperators();
-            
-            // Update user list in auth system
-            await this.updateAuthUsers(newOperator);
-            
-            return {
-                success: true,
-                message: 'Operator berhasil ditambahkan',
-                operator: newOperator
-            };
-            
+            if (response.success) {
+                this.commissions = response.data || [];
+                this.renderCommissions();
+            }
         } catch (error) {
-            console.error('Error adding operator:', error);
-            return {
-                success: false,
-                message: 'Gagal menambahkan operator'
-            };
+            console.error('Error loading commissions:', error);
         }
     }
 
-    async updateOperator(id, updates) {
-        try {
-            const index = this.operators.findIndex(op => op.id === id);
-            
-            if (index === -1) {
-                return {
-                    success: false,
-                    message: 'Operator tidak ditemukan'
-                };
-            }
-            
-            // Update operator data
-            this.operators[index] = {
-                ...this.operators[index],
-                ...updates,
-                id // Ensure ID doesn't change
-            };
-            
-            // Save to storage
-            await this.saveOperators();
-            
-            // Update auth users if username/password changed
-            if (updates.username || updates.password) {
-                await this.updateAuthUsers(this.operators[index]);
-            }
-            
-            return {
-                success: true,
-                message: 'Data operator berhasil diperbarui',
-                operator: this.operators[index]
-            };
-            
-        } catch (error) {
-            console.error('Error updating operator:', error);
-            return {
-                success: false,
-                message: 'Gagal memperbarui data operator'
-            };
+    renderOperators() {
+        const tbody = document.getElementById('operatorsTableBody');
+        if (!tbody) return;
+
+        if (this.operators.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="px-6 py-12 text-center text-gray-500">
+                        <i class="fas fa-users text-4xl mb-3 block"></i>
+                        <p>Belum ada data operator</p>
+                    </td>
+                </tr>
+            `;
+            return;
         }
+
+        tbody.innerHTML = this.operators.map(op => this.renderOperatorRow(op)).join('');
     }
 
-    async deleteOperator(id) {
-        try {
-            const index = this.operators.findIndex(op => op.id === id);
-            
-            if (index === -1) {
-                return {
-                    success: false,
-                    message: 'Operator tidak ditemukan'
-                };
-            }
-            
-            // Don't actually delete, just mark as inactive
-            this.operators[index].status = 'inactive';
-            
-            // Save to storage
-            await this.saveOperators();
-            
-            return {
-                success: true,
-                message: 'Operator dinonaktifkan'
-            };
-            
-        } catch (error) {
-            console.error('Error deleting operator:', error);
-            return {
-                success: false,
-                message: 'Gagal menonaktifkan operator'
-            };
-        }
-    }
-
-    // COMMISSION MANAGEMENT METHODS
-
-    async recordTransaction(operatorId, transactionData) {
-        try {
-            const operator = await this.getOperatorById(operatorId);
-            
-            if (!operator) {
-                throw new Error('Operator not found');
-            }
-            
-            const commissionAmount = this.calculateCommission(
-                transactionData.amount,
-                operator.commissionRate
-            );
-            
-            // Update operator stats
-            const index = this.operators.findIndex(op => op.id === operatorId);
-            
-            this.operators[index].totalTransactions += 1;
-            this.operators[index].totalCommission += commissionAmount;
-            this.operators[index].pendingCommission += commissionAmount;
-            this.operators[index].performance.totalWashes += 1;
-            
-            // Update monthly achievement
-            const currentMonth = new Date().getMonth();
-            const lastUpdate = new Date(operator.lastCommissionUpdate || 0).getMonth();
-            
-            if (currentMonth !== lastUpdate) {
-                this.operators[index].performance.monthlyAchievement = 0;
-            }
-            
-            this.operators[index].performance.monthlyAchievement += 1;
-            this.operators[index].lastCommissionUpdate = new Date().toISOString();
-            
-            // Save changes
-            await this.saveOperators();
-            
-            // Return commission record
-            const commissionRecord = {
-                id: this.generateCommissionId(),
-                operatorId,
-                operatorName: operator.name,
-                transactionId: transactionData.id,
-                transactionAmount: transactionData.amount,
-                commissionRate: operator.commissionRate,
-                commissionAmount,
-                transactionDate: transactionData.date || new Date().toISOString(),
-                status: 'pending',
-                payoutDate: null,
-                notes: transactionData.notes || ''
-            };
-            
-            // Save commission record
-            await this.saveCommissionRecord(commissionRecord);
-            
-            return {
-                success: true,
-                commission: commissionRecord,
-                operator: this.operators[index]
-            };
-            
-        } catch (error) {
-            console.error('Error recording transaction:', error);
-            throw error;
-        }
-    }
-
-    calculateCommission(amount, rate = null) {
-        const commissionRate = rate || this.commissionRate;
-        return Math.round((amount * commissionRate) / 100);
-    }
-
-    async calculateAllCommissions(dateRange = null) {
-        try {
-            // Get transactions for date range
-            const transactions = await this.getTransactions(dateRange);
-            
-            // Group by operator and calculate
-            const operatorCommissions = {};
-            
-            transactions.forEach(transaction => {
-                if (!transaction.operatorId) return;
-                
-                if (!operatorCommissions[transaction.operatorId]) {
-                    operatorCommissions[transaction.operatorId] = {
-                        operatorId: transaction.operatorId,
-                        totalAmount: 0,
-                        commissionAmount: 0,
-                        transactionCount: 0
-                    };
-                }
-                
-                const operator = this.operators.find(op => op.id === transaction.operatorId);
-                const commissionRate = operator ? operator.commissionRate : this.commissionRate;
-                const commission = this.calculateCommission(transaction.amount, commissionRate);
-                
-                operatorCommissions[transaction.operatorId].totalAmount += transaction.amount;
-                operatorCommissions[transaction.operatorId].commissionAmount += commission;
-                operatorCommissions[transaction.operatorId].transactionCount += 1;
-            });
-            
-            // Convert to array
-            const results = Object.values(operatorCommissions);
-            
-            // Update UI if on commission page
-            this.updateCommissionDisplay(results);
-            
-            return {
-                success: true,
-                results,
-                totalCommission: results.reduce((sum, item) => sum + item.commissionAmount, 0),
-                totalTransactions: results.reduce((sum, item) => sum + item.transactionCount, 0)
-            };
-            
-        } catch (error) {
-            console.error('Error calculating commissions:', error);
-            return {
-                success: false,
-                message: 'Gagal menghitung komisi'
-            };
-        }
-    }
-
-    async processCommissionPayout(operatorIds = []) {
-        try {
-            // If no specific operators, process all pending
-            const operatorsToProcess = operatorIds.length > 0 
-                ? this.operators.filter(op => operatorIds.includes(op.id) && op.pendingCommission > 0)
-                : this.operators.filter(op => op.pendingCommission > 0);
-            
-            const payoutRecords = [];
-            const today = new Date().toISOString().split('T')[0];
-            
-            for (const operator of operatorsToProcess) {
-                // Create payout record
-                const payoutRecord = {
-                    id: this.generatePayoutId(),
-                    operatorId: operator.id,
-                    operatorName: operator.name,
-                    amount: operator.pendingCommission,
-                    payoutDate: today,
-                    status: 'paid',
-                    paymentMethod: 'transfer',
-                    bankAccount: operator.bankAccount,
-                    notes: `Pembayaran komisi periode ${today}`
-                };
-                
-                // Update operator
-                const index = this.operators.findIndex(op => op.id === operator.id);
-                this.operators[index].paidCommission += operator.pendingCommission;
-                this.operators[index].pendingCommission = 0;
-                
-                payoutRecords.push(payoutRecord);
-                
-                // Send notification to operator
-                await this.sendPayoutNotification(operator, payoutRecord);
-            }
-            
-            // Save changes
-            await this.saveOperators();
-            await this.savePayoutRecords(payoutRecords);
-            
-            // Show success message
-            this.showNotification(
-                `Berhasil memproses pembayaran komisi untuk ${payoutRecords.length} operator`,
-                'success'
-            );
-            
-            return {
-                success: true,
-                payouts: payoutRecords,
-                totalPaid: payoutRecords.reduce((sum, record) => sum + record.amount, 0)
-            };
-            
-        } catch (error) {
-            console.error('Error processing payout:', error);
-            return {
-                success: false,
-                message: 'Gagal memproses pembayaran komisi'
-            };
-        }
-    }
-
-    // SCHEDULE MANAGEMENT METHODS
-
-    getDefaultSchedule() {
-        return {
-            monday: { start: '08:00', end: '17:00' },
-            tuesday: { start: '08:00', end: '17:00' },
-            wednesday: { start: '08:00', end: '17:00' },
-            thursday: { start: '08:00', end: '17:00' },
-            friday: { start: '08:00', end: '17:00' },
-            saturday: { start: '09:00', end: '15:00' },
-            sunday: 'off'
+    renderOperatorRow(operator) {
+        const statusColors = {
+            'active': 'bg-green-100 text-green-800',
+            'inactive': 'bg-gray-100 text-gray-800',
+            'on_leave': 'bg-yellow-100 text-yellow-800'
         };
-    }
 
-    async updateOperatorSchedule(operatorId, schedule) {
-        try {
-            const operator = await this.getOperatorById(operatorId);
-            
-            if (!operator) {
-                return {
-                    success: false,
-                    message: 'Operator tidak ditemukan'
-                };
-            }
-            
-            // Update schedule
-            const index = this.operators.findIndex(op => op.id === operatorId);
-            this.operators[index].schedule = schedule;
-            
-            // Save changes
-            await this.saveOperators();
-            
-            return {
-                success: true,
-                message: 'Jadwal berhasil diperbarui',
-                operator: this.operators[index]
-            };
-            
-        } catch (error) {
-            console.error('Error updating schedule:', error);
-            return {
-                success: false,
-                message: 'Gagal memperbarui jadwal'
-            };
-        }
-    }
+        const statusLabels = {
+            'active': 'Aktif',
+            'inactive': 'Tidak Aktif',
+            'on_leave': 'Cuti'
+        };
 
-    getActiveOperatorsNow() {
-        const now = new Date();
-        const day = now.toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase();
-        const time = now.toTimeString().slice(0, 5); // HH:MM format
-        
-        return this.operators.filter(operator => {
-            if (operator.status !== 'active') return false;
-            
-            const schedule = operator.schedule[day];
-            
-            if (!schedule || schedule === 'off') return false;
-            
-            return time >= schedule.start && time <= schedule.end;
-        });
-    }
+        // Calculate monthly commission (30% of total transactions)
+        const monthlyCommission = operator.total_commission || 0;
+        const pendingCommission = operator.pending_commission || 0;
 
-    // UI METHODS
-
-    async loadOperatorList() {
-        const container = document.getElementById('operatorList');
-        if (!container) return;
-        
-        const operators = await this.getOperators();
-        
-        if (operators.length === 0) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <i class="fas fa-users"></i>
-                    <p>Belum ada operator terdaftar</p>
-                </div>
-            `;
-            return;
-        }
-        
-        let html = `
-            <div class="operator-stats">
-                <div class="stat-card">
-                    <i class="fas fa-user-check"></i>
-                    <h3>${operators.filter(op => op.status === 'active').length}</h3>
-                    <p>Aktif</p>
-                </div>
-                <div class="stat-card">
-                    <i class="fas fa-money-bill-wave"></i>
-                    <h3>${this.formatCurrency(operators.reduce((sum, op) => sum + op.pendingCommission, 0))}</h3>
-                    <p>Komisi Tertunda</p>
-                </div>
-                <div class="stat-card">
-                    <i class="fas fa-chart-line"></i>
-                    <h3>${operators.reduce((sum, op) => sum + op.totalTransactions, 0)}</h3>
-                    <p>Total Transaksi</p>
-                </div>
-            </div>
-            
-            <div class="table-container">
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Nama</th>
-                            <th>Status</th>
-                            <th>Total Komisi</th>
-                            <th>Komisi Tertunda</th>
-                            <th>Total Transaksi</th>
-                            <th>Rating</th>
-                            <th>Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-        `;
-        
-        operators.forEach(operator => {
-            const statusClass = operator.status === 'active' ? 'badge-success' : 'badge-danger';
-            const ratingStars = '★'.repeat(Math.floor(operator.performance.avgRating)) + 
-                              '☆'.repeat(5 - Math.floor(operator.performance.avgRating));
-            
-            html += `
-                <tr>
-                    <td>
-                        <div class="operator-info">
-                            <div class="operator-avatar">
-                                <i class="fas fa-user-circle"></i>
-                            </div>
-                            <div>
-                                <strong>${operator.name}</strong>
-                                <small>${operator.phone}</small>
-                            </div>
+        return `
+            <tr class="hover:bg-gray-50 transition">
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0 h-10 w-10 flex items-center justify-center bg-purple-100 rounded-full">
+                            <span class="text-purple-600 font-semibold">${operator.name.charAt(0).toUpperCase()}</span>
                         </div>
-                    </td>
-                    <td>
-                        <span class="badge ${statusClass}">${operator.status === 'active' ? 'Aktif' : 'Nonaktif'}</span>
-                    </td>
-                    <td>${this.formatCurrency(operator.totalCommission)}</td>
-                    <td>${this.formatCurrency(operator.pendingCommission)}</td>
-                    <td>${operator.totalTransactions}</td>
-                    <td>
-                        <div class="rating">
-                            <span class="stars">${ratingStars}</span>
-                            <small>${operator.performance.avgRating.toFixed(1)}</small>
+                        <div class="ml-3">
+                            <div class="text-sm font-medium text-gray-900">${operator.name}</div>
+                            <div class="text-xs text-gray-500">ID: ${operator.id}</div>
                         </div>
-                    </td>
-                    <td>
-                        <div class="action-buttons">
-                            <button class="btn-action btn-small" onclick="operatorManager.editOperator('${operator.id}')">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="btn-action btn-small" onclick="operatorManager.viewDetails('${operator.id}')">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                            <button class="btn-action btn-small" onclick="operatorManager.payCommission('${operator.id}')">
-                                <i class="fas fa-money-bill-wave"></i>
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-            `;
-        });
-        
-        html += `
-                    </tbody>
-                </table>
-            </div>
-        `;
-        
-        container.innerHTML = html;
-    }
-
-    async loadCommissionData() {
-        const container = document.getElementById('commissionData');
-        if (!container) return;
-        
-        const result = await this.calculateAllCommissions();
-        
-        if (!result.success) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <i class="fas fa-exclamation-circle"></i>
-                    <p>${result.message}</p>
-                </div>
-            `;
-            return;
-        }
-        
-        let html = `
-            <div class="commission-summary">
-                <h3>Ringkasan Komisi</h3>
-                <div class="summary-grid">
-                    <div class="summary-item">
-                        <span>Total Komisi:</span>
-                        <strong>${this.formatCurrency(result.totalCommission)}</strong>
                     </div>
-                    <div class="summary-item">
-                        <span>Total Transaksi:</span>
-                        <strong>${result.totalTransactions}</strong>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm text-gray-900">${operator.phone || '-'}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${statusColors[operator.status]}">
+                        ${statusLabels[operator.status]}
+                    </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm">
+                        <div class="font-semibold text-purple-600">${operator.commission_rate}%</div>
+                        <div class="text-xs text-gray-500">dari setiap transaksi</div>
                     </div>
-                    <div class="summary-item">
-                        <span>Jumlah Operator:</span>
-                        <strong>${result.results.length}</strong>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm font-medium text-gray-900">${operator.total_washes || 0} cuci</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm">
+                        <div class="font-semibold text-gray-900">Rp ${this.formatCurrency(monthlyCommission)}</div>
+                        ${pendingCommission > 0 ? `<div class="text-xs text-orange-600">Pending: Rp ${this.formatCurrency(pendingCommission)}</div>` : ''}
                     </div>
-                </div>
-            </div>
-            
-            <div class="table-container">
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th>Operator</th>
-                            <th>Total Transaksi</th>
-                            <th>Total Omzet</th>
-                            <th>Komisi (${this.commissionRate}%)</th>
-                            <th>Status</th>
-                            <th>Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-        `;
-        
-        result.results.forEach(item => {
-            const operator = this.operators.find(op => op.id === item.operatorId);
-            const hasPendingCommission = operator && operator.pendingCommission > 0;
-            
-            html += `
-                <tr>
-                    <td>
-                        <strong>${operator?.name || 'Unknown'}</strong>
-                        <small>ID: ${item.operatorId}</small>
-                    </td>
-                    <td>${item.transactionCount}</td>
-                    <td>${this.formatCurrency(item.totalAmount)}</td>
-                    <td>${this.formatCurrency(item.commissionAmount)}</td>
-                    <td>
-                        ${hasPendingCommission ? 
-                            `<span class="badge badge-warning">Belum Dibayar</span>` :
-                            `<span class="badge badge-success">Lunas</span>`
-                        }
-                    </td>
-                    <td>
-                        <button class="btn-action btn-small" onclick="operatorManager.paySingleCommission('${item.operatorId}')">
-                            <i class="fas fa-money-check"></i> Bayar
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <div class="flex items-center gap-2">
+                        <button 
+                            onclick="operatorManager.editOperator(${operator.id})"
+                            class="text-blue-600 hover:text-blue-900 transition"
+                            title="Edit">
+                            <i class="fas fa-edit"></i>
                         </button>
+                        <button 
+                            onclick="operatorManager.viewDetails(${operator.id})"
+                            class="text-green-600 hover:text-green-900 transition"
+                            title="Detail">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button 
+                            onclick="operatorManager.deleteOperator(${operator.id}, '${operator.name}')"
+                            class="text-red-600 hover:text-red-900 transition"
+                            title="Hapus">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }
+
+    renderCalendar() {
+        const grid = document.getElementById('calendarGrid');
+        if (!grid) return;
+
+        // Update month label
+        const monthNames = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'];
+        const monthLabel = document.getElementById('calendarMonth');
+        if (monthLabel) {
+            monthLabel.textContent = `${monthNames[this.currentMonth]} ${this.currentYear}`;
+        }
+
+        // Calculate calendar days
+        const firstDay = new Date(this.currentYear, this.currentMonth, 1);
+        const lastDay = new Date(this.currentYear, this.currentMonth + 1, 0);
+        const startingDayOfWeek = firstDay.getDay();
+        const daysInMonth = lastDay.getDate();
+
+        let html = '';
+
+        // Empty cells before first day
+        for (let i = 0; i < startingDayOfWeek; i++) {
+            html += '<div class="calendar-day border border-gray-200 rounded-lg p-2 bg-gray-50"></div>';
+        }
+
+        // Days of the month
+        const today = new Date();
+        for (let day = 1; day <= daysInMonth; day++) {
+            const date = new Date(this.currentYear, this.currentMonth, day);
+            const dateStr = date.toISOString().split('T')[0];
+            const isToday = dateStr === today.toISOString().split('T')[0];
+            
+            // Get attendance for this day
+            const dayAttendance = this.attendance.filter(a => a.date === dateStr);
+            
+            html += `
+                <div class="calendar-day border border-gray-200 rounded-lg p-2 ${isToday ? 'today bg-blue-50' : 'bg-white'}">
+                    <div class="text-sm font-semibold mb-1 ${isToday ? 'text-blue-600' : 'text-gray-700'}">${day}</div>
+                    <div class="space-y-1">
+                        ${dayAttendance.map(a => this.renderAttendanceBadge(a)).join('')}
+                    </div>
+                </div>
+            `;
+        }
+
+        grid.innerHTML = html;
+    }
+
+    renderAttendanceBadge(attendance) {
+        const colors = {
+            'present': 'bg-green-100 text-green-800',
+            'late': 'bg-yellow-100 text-yellow-800',
+            'absent': 'bg-red-100 text-red-800',
+            'leave': 'bg-blue-100 text-blue-800'
+        };
+
+        const icons = {
+            'present': '✓',
+            'late': '⏰',
+            'absent': '✗',
+            'leave': '🏖'
+        };
+
+        // Filter by selected operator if any
+        if (this.selectedOperatorId && attendance.operator_id !== this.selectedOperatorId) {
+            return '';
+        }
+
+        const operator = this.operators.find(o => o.id === attendance.operator_id);
+        const operatorName = operator ? operator.name.split(' ')[0] : 'Op';
+
+        return `
+            <div class="attendance-badge ${colors[attendance.status]} flex items-center gap-1">
+                <span>${icons[attendance.status]}</span>
+                <span class="truncate">${operatorName}</span>
+            </div>
+        `;
+    }
+
+    renderAttendanceSummary() {
+        const summary = document.getElementById('attendanceSummary');
+        if (!summary) return;
+
+        // Calculate attendance statistics
+        const stats = {};
+        this.operators.forEach(op => {
+            const operatorAttendance = this.attendance.filter(a => a.operator_id === op.id);
+            const present = operatorAttendance.filter(a => a.status === 'present').length;
+            const total = operatorAttendance.length;
+            const percentage = total > 0 ? Math.round((present / total) * 100) : 0;
+
+            stats[op.id] = { name: op.name, present, total, percentage };
+        });
+
+        summary.innerHTML = Object.values(stats).map(s => `
+            <div class="flex items-center justify-between">
+                <span class="text-sm text-gray-700">${s.name}</span>
+                <span class="text-sm font-semibold ${s.percentage >= 80 ? 'text-green-600' : 'text-red-600'}">
+                    ${s.present}/${s.total} (${s.percentage}%)
+                </span>
+            </div>
+        `).join('');
+    }
+
+    renderCommissions() {
+        const tbody = document.getElementById('commissionTableBody');
+        if (!tbody) return;
+
+        if (this.operators.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="7" class="px-6 py-12 text-center text-gray-500">
+                        <i class="fas fa-money-bill-wave text-4xl mb-3 block"></i>
+                        <p>Belum ada data komisi</p>
                     </td>
                 </tr>
             `;
-        });
-        
-        html += `
-                    </tbody>
-                </table>
-            </div>
-            
-            <div class="commission-actions">
-                <button class="btn-primary" onclick="operatorManager.processCommissionPayout()">
-                    <i class="fas fa-check-circle"></i> Proses Semua Pembayaran
-                </button>
-                <button class="btn-secondary" onclick="operatorManager.printCommissionReport()">
-                    <i class="fas fa-print"></i> Cetak Laporan
-                </button>
-            </div>
-        `;
-        
-        container.innerHTML = html;
-    }
-
-    // HELPER METHODS
-
-    generateOperatorId() {
-        const timestamp = Date.now().toString(36).toUpperCase();
-        const random = Math.random().toString(36).substr(2, 4).toUpperCase();
-        return `OPR${timestamp}${random}`;
-    }
-
-    generateCommissionId() {
-        const timestamp = Date.now().toString(36).toUpperCase();
-        return `COM${timestamp}`;
-    }
-
-    generatePayoutId() {
-        const timestamp = Date.now().toString(36).toUpperCase();
-        return `PAY${timestamp}`;
-    }
-
-    async saveOperators() {
-        try {
-            localStorage.setItem('motowash_operators', JSON.stringify(this.operators));
-            return true;
-        } catch (error) {
-            console.error('Error saving operators:', error);
-            return false;
+            return;
         }
+
+        tbody.innerHTML = this.operators.map(op => {
+            const totalOmzet = op.total_revenue || 0;
+            const totalCommission = Math.round(totalOmzet * (op.commission_rate / 100));
+            const paid = op.paid_commission || 0;
+            const pending = totalCommission - paid;
+
+            return `
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm font-medium text-gray-900">${op.name}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        ${op.total_washes || 0} transaksi
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        Rp ${this.formatCurrency(totalOmzet)}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-purple-600">
+                        Rp ${this.formatCurrency(totalCommission)}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-green-600">
+                        Rp ${this.formatCurrency(paid)}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-orange-600">
+                        Rp ${this.formatCurrency(pending)}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        ${pending > 0 ? `
+                            <button 
+                                onclick="operatorManager.payCommission(${op.id}, ${pending})"
+                                class="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 transition">
+                                <i class="fas fa-check mr-1"></i>Bayar
+                            </button>
+                        ` : `<span class="text-gray-400">Lunas</span>`}
+                    </td>
+                </tr>
+            `;
+        }).join('');
     }
 
-    async saveCommissionRecord(record) {
-        try {
-            const records = JSON.parse(localStorage.getItem('motowash_commissions') || '[]');
-            records.push(record);
-            localStorage.setItem('motowash_commissions', JSON.stringify(records));
-            return true;
-        } catch (error) {
-            console.error('Error saving commission record:', error);
-            return false;
+    updateStats() {
+        // Total operators
+        document.getElementById('totalOperators').textContent = this.operators.length;
+
+        // Present today (mock data for now)
+        const presentToday = this.operators.filter(o => o.status === 'active').length;
+        document.getElementById('presentToday').textContent = presentToday;
+
+        // Total commission this month
+        const totalCommission = this.operators.reduce((sum, op) => sum + (op.total_commission || 0), 0);
+        document.getElementById('totalCommission').textContent = 'Rp ' + this.formatCurrency(totalCommission);
+
+        // Pending commission
+        const pendingCommission = this.operators.reduce((sum, op) => sum + (op.pending_commission || 0), 0);
+        document.getElementById('pendingCommission').textContent = 'Rp ' + this.formatCurrency(pendingCommission);
+    }
+
+    populateOperatorFilter() {
+        const select = document.getElementById('operatorFilter');
+        if (!select) return;
+
+        const options = this.operators.map(op => 
+            `<option value="${op.id}">${op.name}</option>`
+        ).join('');
+
+        select.innerHTML = '<option value="">Semua Operator</option>' + options;
+    }
+
+    filterOperators(query) {
+        // Implement search filter if needed
+        console.log('Search:', query);
+    }
+
+    async checkInOperator() {
+        const operatorId = this.selectedOperatorId || this.operators[0]?.id;
+        if (!operatorId) {
+            this.showError('Pilih operator terlebih dahulu');
+            return;
         }
-    }
 
-    async savePayoutRecords(records) {
         try {
-            const allRecords = JSON.parse(localStorage.getItem('motowash_payouts') || '[]');
-            allRecords.push(...records);
-            localStorage.setItem('motowash_payouts', JSON.stringify(allRecords));
-            return true;
-        } catch (error) {
-            console.error('Error saving payout records:', error);
-            return false;
-        }
-    }
-
-    async getTransactions(dateRange = null) {
-        try {
-            const transactions = JSON.parse(localStorage.getItem('motowash_transactions') || '[]');
-            
-            if (!dateRange) return transactions;
-            
-            const startDate = new Date(dateRange.start);
-            const endDate = new Date(dateRange.end);
-            endDate.setHours(23, 59, 59, 999);
-            
-            return transactions.filter(transaction => {
-                const transDate = new Date(transaction.createdAt || transaction.date);
-                return transDate >= startDate && transDate <= endDate;
+            const response = await this.apiClient.post('/attendance/checkin', {
+                operator_id: operatorId,
+                check_in: new Date().toTimeString().split(' ')[0]
             });
-            
-        } catch (error) {
-            console.error('Error getting transactions:', error);
-            return [];
-        }
-    }
 
-    async updateAuthUsers(operator) {
-        try {
-            const users = JSON.parse(localStorage.getItem('motowash_users') || '[]');
-            const index = users.findIndex(u => u.id === operator.id);
-            
-            if (index !== -1) {
-                users[index] = {
-                    ...users[index],
-                    username: operator.username,
-                    password: operator.password,
-                    name: operator.name,
-                    role: operator.role,
-                    phone: operator.phone
-                };
+            if (response.success) {
+                this.showSuccess('Check-in berhasil!');
+                this.loadAttendance();
             } else {
-                users.push({
-                    id: operator.id,
-                    username: operator.username,
-                    password: operator.password,
-                    name: operator.name,
-                    role: operator.role,
-                    phone: operator.phone,
-                    commission_rate: operator.commissionRate,
-                    permissions: ['create_transaction', 'view_dashboard']
-                });
+                this.showError(response.message || 'Gagal check-in');
             }
-            
-            localStorage.setItem('motowash_users', JSON.stringify(users));
-            return true;
-            
         } catch (error) {
-            console.error('Error updating auth users:', error);
-            return false;
+            console.error('Error check-in:', error);
+            this.showError('Gagal check-in: ' + error.message);
         }
     }
 
-    async sendPayoutNotification(operator, payoutRecord) {
-        // In production, send WhatsApp/email notification
-        const message = `
-Halo ${operator.name}!
+    async checkOutOperator() {
+        const operatorId = this.selectedOperatorId || this.operators[0]?.id;
+        if (!operatorId) {
+            this.showError('Pilih operator terlebih dahulu');
+            return;
+        }
 
-💰 *PEMBAYARAN KOMISI TELAH DIPROSES*
+        try {
+            const response = await this.apiClient.post('/attendance/checkout', {
+                operator_id: operatorId,
+                check_out: new Date().toTimeString().split(' ')[0]
+            });
 
-📋 *Detail Pembayaran:*
-• Jumlah: ${this.formatCurrency(payoutRecord.amount)}
-• Tanggal: ${payoutRecord.payoutDate}
-• Metode: Transfer Bank
-• Bank: ${operator.bankAccount.bankName}
-• Rekening: ${operator.bankAccount.accountNumber}
-
-Terima kasih atas kerja keras Anda!
-
-*MotoWash Management*
-        `;
-        
-        console.log('Payout notification:', message);
-        // Implement WhatsApp API integration here
-    }
-
-    formatCurrency(amount) {
-        return new Intl.NumberFormat('id-ID', {
-            style: 'currency',
-            currency: 'IDR',
-            minimumFractionDigits: 0
-        }).format(amount);
-    }
-
-    showNotification(message, type = 'info') {
-        if (typeof window.showNotification === 'function') {
-            window.showNotification(message, type);
-        } else {
-            alert(`${type.toUpperCase()}: ${message}`);
+            if (response.success) {
+                this.showSuccess('Check-out berhasil!');
+                this.loadAttendance();
+            } else {
+                this.showError(response.message || 'Gagal check-out');
+            }
+        } catch (error) {
+            console.error('Error check-out:', error);
+            this.showError('Gagal check-out: ' + error.message);
         }
     }
 
-    // PUBLIC API METHODS (for UI calls)
+    async payCommission(operatorId, amount) {
+        if (!confirm(`Bayar komisi Rp ${this.formatCurrency(amount)}?`)) {
+            return;
+        }
+
+        try {
+            const response = await this.apiClient.post('/commissions/pay', {
+                operator_id: operatorId,
+                amount: amount
+            });
+
+            if (response.success) {
+                this.showSuccess('Komisi berhasil dibayar!');
+                this.loadOperators();
+                this.loadCommissions();
+            } else {
+                this.showError(response.message || 'Gagal membayar komisi');
+            }
+        } catch (error) {
+            console.error('Error paying commission:', error);
+            this.showError('Gagal membayar komisi: ' + error.message);
+        }
+    }
 
     editOperator(id) {
-        // Show edit form
-        this.showNotification(`Edit operator ${id}`, 'info');
-        // Implement edit form modal
+        alert('Edit operator #' + id + ' (coming soon)');
     }
 
     viewDetails(id) {
-        // Show operator details
-        const operator = this.operators.find(op => op.id === id);
-        if (operator) {
-            this.showOperatorDetails(operator);
+        alert('View details operator #' + id + ' (coming soon)');
+    }
+
+    async deleteOperator(id, name) {
+        if (!confirm(`Hapus operator "${name}"?`)) {
+            return;
+        }
+
+        try {
+            const response = await this.apiClient.delete(`/operators/${id}`);
+            
+            if (response.success) {
+                this.showSuccess('Operator berhasil dihapus!');
+                this.loadOperators();
+            } else {
+                this.showError(response.message || 'Gagal menghapus operator');
+            }
+        } catch (error) {
+            console.error('Error deleting operator:', error);
+            this.showError('Gagal menghapus operator: ' + error.message);
         }
     }
 
-    payCommission(id) {
-        // Process single operator commission
-        this.processCommissionPayout([id]);
+    formatCurrency(amount) {
+        return amount.toLocaleString('id-ID');
     }
 
-    paySingleCommission(operatorId) {
-        this.processCommissionPayout([operatorId]);
+    showSuccess(message) {
+        alert('✅ ' + message);
     }
 
-    printCommissionReport() {
-        // Generate and print commission report
-        window.print();
-    }
-
-    showOperatorForm() {
-        // Show modal for adding new operator
-        const modalHtml = `
-            <div class="modal" id="operatorFormModal">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h3><i class="fas fa-user-plus"></i> Tambah Operator Baru</h3>
-                        <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
-                    </div>
-                    <div class="modal-body">
-                        <form id="newOperatorForm">
-                            <!-- Form fields will be added here -->
-                            <div class="form-group">
-                                <label for="operatorName">Nama Lengkap *</label>
-                                <input type="text" id="operatorName" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="operatorPhone">No. Handphone *</label>
-                                <input type="tel" id="operatorPhone" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="operatorUsername">Username *</label>
-                                <input type="text" id="operatorUsername" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="operatorPassword">Password *</label>
-                                <input type="password" id="operatorPassword" required>
-                            </div>
-                            <div class="form-actions">
-                                <button type="submit" class="btn-primary">Simpan</button>
-                                <button type="button" class="btn-secondary" onclick="this.closest('.modal').remove()">Batal</button>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
-        
-        // Add form submission handler
-        document.getElementById('newOperatorForm')?.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            // Handle form submission
-        });
-    }
-
-    showOperatorDetails(operator) {
-        // Show operator details modal
-        const modalHtml = `
-            <div class="modal" id="operatorDetailsModal">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h3><i class="fas fa-user"></i> Detail Operator</h3>
-                        <button class="modal-close" onclick="this.closest('.modal').remove()">&times;</button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="operator-details">
-                            <div class="detail-section">
-                                <h4>Informasi Pribadi</h4>
-                                <div class="detail-grid">
-                                    <div class="detail-item">
-                                        <span>Nama:</span>
-                                        <strong>${operator.name}</strong>
-                                    </div>
-                                    <div class="detail-item">
-                                        <span>Telepon:</span>
-                                        <span>${operator.phone}</span>
-                                    </div>
-                                    <div class="detail-item">
-                                        <span>Email:</span>
-                                        <span>${operator.email || '-'}</span>
-                                    </div>
-                                    <div class="detail-item">
-                                        <span>Status:</span>
-                                        <span class="badge ${operator.status === 'active' ? 'badge-success' : 'badge-danger'}">
-                                            ${operator.status === 'active' ? 'Aktif' : 'Nonaktif'}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="detail-section">
-                                <h4>Informasi Bank</h4>
-                                <div class="detail-grid">
-                                    <div class="detail-item">
-                                        <span>Bank:</span>
-                                        <span>${operator.bankAccount?.bankName || '-'}</span>
-                                    </div>
-                                    <div class="detail-item">
-                                        <span>No. Rekening:</span>
-                                        <span>${operator.bankAccount?.accountNumber || '-'}</span>
-                                    </div>
-                                    <div class="detail-item">
-                                        <span>Atas Nama:</span>
-                                        <span>${operator.bankAccount?.accountName || '-'}</span>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="detail-section">
-                                <h4>Statistik Komisi</h4>
-                                <div class="detail-grid">
-                                    <div class="detail-item">
-                                        <span>Total Komisi:</span>
-                                        <strong>${this.formatCurrency(operator.totalCommission)}</strong>
-                                    </div>
-                                    <div class="detail-item">
-                                        <span>Komisi Tertunda:</span>
-                                        <strong class="text-warning">${this.formatCurrency(operator.pendingCommission)}</strong>
-                                    </div>
-                                    <div class="detail-item">
-                                        <span>Komisi Dibayar:</span>
-                                        <strong class="text-success">${this.formatCurrency(operator.paidCommission)}</strong>
-                                    </div>
-                                    <div class="detail-item">
-                                        <span>Total Transaksi:</span>
-                                        <strong>${operator.totalTransactions}</strong>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        document.body.insertAdjacentHTML('beforeend', modalHtml);
-    }
-
-    searchOperators(searchTerm) {
-        const filtered = this.operators.filter(operator => 
-            operator.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            operator.phone.includes(searchTerm) ||
-            operator.email?.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-        
-        this.updateOperatorListDisplay(filtered);
-    }
-
-    updateOperatorListDisplay(operators) {
-        // Update the operator list table with filtered results
-        const tbody = document.querySelector('#operatorList tbody');
-        if (tbody) {
-            // Implementation depends on your table structure
-        }
-    }
-
-    updateCommissionDisplay(commissionData) {
-        // Update commission table display
-        const container = document.getElementById('commissionData');
-        if (container) {
-            // Implementation depends on your commission display structure
-        }
-    }
-
-    filterCommissionByDate() {
-        const dateRange = document.getElementById('commissionDateRange')?.value;
-        if (dateRange) {
-            const [start, end] = dateRange.split(' to ');
-            this.calculateAllCommissions({ start, end });
-        }
-    }
-
-    loadOperatorSchedule() {
-        // Load and display operator schedule
-        const container = document.getElementById('scheduleContainer');
-        if (!container) return;
-        
-        let html = `
-            <div class="schedule-grid">
-                <div class="schedule-header">
-                    <h4>Operator</h4>
-                    ${['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'].map(day => `
-                        <div class="day-header">${day}</div>
-                    `).join('')}
-                </div>
-        `;
-        
-        this.operators.forEach(operator => {
-            html += `
-                <div class="schedule-row">
-                    <div class="operator-name">${operator.name}</div>
-                    ${['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map(day => {
-                        const schedule = operator.schedule[day];
-                        if (!schedule || schedule === 'off') {
-                            return `<div class="day-cell off">OFF</div>`;
-                        }
-                        return `<div class="day-cell">${schedule.start} - ${schedule.end}</div>`;
-                    }).join('')}
-                </div>
-            `;
-        });
-        
-        html += `</div>`;
-        container.innerHTML = html;
-    }
-
-    updateOperatorSchedule() {
-        // Get schedule from form and update
-        const form = document.getElementById('scheduleForm');
-        if (form) {
-            // Collect schedule data from form
-            // Update operator schedule
-            this.showNotification('Jadwal berhasil diperbarui', 'success');
-        }
-    }
-
-    printSchedule() {
-        // Print schedule
-        window.print();
-    }
-
-    exportOperatorsToExcel() {
-        // Export operators data to Excel
-        const data = this.operators.map(op => ({
-            'ID': op.id,
-            'Nama': op.name,
-            'Telepon': op.phone,
-            'Email': op.email || '',
-            'Status': op.status === 'active' ? 'Aktif' : 'Nonaktif',
-            'Total Komisi': op.totalCommission,
-            'Komisi Tertunda': op.pendingCommission,
-            'Total Transaksi': op.totalTransactions,
-            'Tanggal Bergabung': op.joinDate
-        }));
-        
-        // Convert to CSV
-        const csv = this.convertToCSV(data);
-        this.downloadCSV(csv, 'operators.csv');
-        
-        this.showNotification('Data operator berhasil diekspor', 'success');
-    }
-
-    convertToCSV(data) {
-        const headers = Object.keys(data[0]);
-        const rows = data.map(row => 
-            headers.map(header => 
-                JSON.stringify(row[header], (key, val) => val === null ? '' : val)
-            ).join(',')
-        );
-        return [headers.join(','), ...rows].join('\n');
-    }
-
-    downloadCSV(csv, filename) {
-        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.setAttribute('href', url);
-        link.setAttribute('download', filename);
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
+    showError(message) {
+        alert('❌ ' + message);
     }
 }
 
-// Initialize Operator Manager
-let operatorManager = null;
+// Tab switching
+function switchTab(tabName) {
+    // Hide all tab contents
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.add('hidden');
+    });
 
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialize if on operator-related pages
-    if (document.querySelector('[data-operator-module]') || 
-        document.getElementById('operatorPage') ||
-        document.getElementById('commissionPage') ||
-        document.getElementById('schedulePage')) {
-        
-        operatorManager = new OperatorManager();
-        window.operatorManager = operatorManager;
-        
-        // For transaction page, make sure operatorManager is available
-        if (document.getElementById('operatorSelect')) {
-            operatorManager.loadOperators().then(() => {
-                // Populate operator dropdown
-                const select = document.getElementById('operatorSelect');
-                if (select) {
-                    select.innerHTML = '<option value="">Pilih Operator</option>' +
-                        operatorManager.operators
-                            .filter(op => op.status === 'active')
-                            .map(op => `<option value="${op.id}">${op.name}</option>`)
-                            .join('');
-                }
-            });
-        }
+    // Remove active class from all tab buttons
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('text-purple-600', 'border-b-2', 'border-purple-600');
+        btn.classList.add('text-gray-600');
+    });
+
+    // Show selected tab content
+    const content = document.getElementById(`content-${tabName}`);
+    if (content) {
+        content.classList.remove('hidden');
     }
+
+    // Add active class to selected tab button
+    const btn = document.getElementById(`tab-${tabName}`);
+    if (btn) {
+        btn.classList.remove('text-gray-600');
+        btn.classList.add('text-purple-600', 'border-b-2', 'border-purple-600');
+    }
+
+    // Load data based on tab
+    if (tabName === 'attendance') {
+        operatorManager.loadAttendance();
+    } else if (tabName === 'commission') {
+        operatorManager.loadCommissions();
+    }
+}
+
+// Calendar navigation
+function previousMonth() {
+    operatorManager.currentMonth--;
+    if (operatorManager.currentMonth < 0) {
+        operatorManager.currentMonth = 11;
+        operatorManager.currentYear--;
+    }
+    operatorManager.loadAttendance();
+}
+
+function nextMonth() {
+    operatorManager.currentMonth++;
+    if (operatorManager.currentMonth > 11) {
+        operatorManager.currentMonth = 0;
+        operatorManager.currentYear++;
+    }
+    operatorManager.loadAttendance();
+}
+
+function checkInOperator() {
+    operatorManager.checkInOperator();
+}
+
+function checkOutOperator() {
+    operatorManager.checkOutOperator();
+}
+
+function openAddOperatorModal() {
+    alert('Tambah operator (coming soon)');
+}
+
+function exportCommissionReport() {
+    alert('Export laporan komisi (coming soon)');
+}
+
+// Initialize operator manager
+let operatorManager;
+document.addEventListener('DOMContentLoaded', () => {
+    operatorManager = new OperatorManager();
 });
-
-// Export for use in other modules
-if (typeof window !== 'undefined') {
-    window.OperatorManager = OperatorManager;
-}
-
-// Export for testing
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = OperatorManager;
-}

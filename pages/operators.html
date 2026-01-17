@@ -6,126 +6,298 @@
     <title>Management Operator - Motor Bersih POS</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .calendar-day {
+            min-height: 80px;
+            position: relative;
+        }
+        .calendar-day.today {
+            background-color: #f3f4f6;
+        }
+        .attendance-badge {
+            font-size: 0.75rem;
+            padding: 2px 6px;
+            border-radius: 4px;
+        }
+    </style>
 </head>
 <body class="bg-gray-50">
     <div class="max-w-7xl mx-auto py-8 px-4">
         <!-- Header -->
-        <div class="flex items-center justify-between mb-8">
-            <h1 class="text-3xl font-bold text-gray-900"><i class="fas fa-user-friends text-purple-600 mr-3"></i>Management Operator</h1>
-            <div class="flex gap-3">
-                <button class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-semibold">
-                    <i class="fas fa-user-plus mr-2"></i>Tambah Operator
-                </button>
-                <a href="dashboard.html" class="flex items-center gap-2 px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">
-                    <i class="fas fa-arrow-left"></i> Kembali
+        <div class="mb-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900 flex items-center gap-3">
+                        <i class="fas fa-user-friends text-purple-600"></i>
+                        Management Operator
+                    </h1>
+                    <p class="mt-2 text-gray-600">Kelola operator, bagi hasil 30%, dan absensi</p>
+                </div>
+                <a href="dashboard.html" class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 shadow-sm transition">
+                    <i class="fas fa-arrow-left"></i>
+                    Kembali
                 </a>
             </div>
         </div>
 
-        <!-- Tabs -->
-        <div class="flex gap-4 border-b border-gray-200 mb-6">
-            <button class="tab-button active px-4 py-3 font-semibold text-purple-600 border-b-2 border-purple-600">
-                <i class="fas fa-users mr-2"></i>Daftar Operator
-            </button>
-            <button class="tab-button px-4 py-3 font-semibold text-gray-600 hover:text-gray-900">
-                <i class="fas fa-money-bill-wave mr-2"></i>Komisi & Pembayaran
-            </button>
-            <button class="tab-button px-4 py-3 font-semibold text-gray-600 hover:text-gray-900">
-                <i class="fas fa-calendar-alt mr-2"></i>Jadwal Kerja
-            </button>
-            <button class="tab-button px-4 py-3 font-semibold text-gray-600 hover:text-gray-900">
-                <i class="fas fa-chart-bar mr-2"></i>Laporan
-            </button>
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-600">Total Operator</p>
+                        <p class="text-2xl font-bold text-gray-900 mt-1" id="totalOperators">0</p>
+                    </div>
+                    <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-users text-purple-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-600">Hadir Hari Ini</p>
+                        <p class="text-2xl font-bold text-gray-900 mt-1" id="presentToday">0</p>
+                    </div>
+                    <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-user-check text-green-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-600">Komisi Bulan Ini</p>
+                        <p class="text-2xl font-bold text-gray-900 mt-1" id="totalCommission">Rp 0</p>
+                    </div>
+                    <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-money-bill-wave text-yellow-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-600">Komisi Pending</p>
+                        <p class="text-2xl font-bold text-gray-900 mt-1" id="pendingCommission">Rp 0</p>
+                    </div>
+                    <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                        <i class="fas fa-clock text-orange-600 text-xl"></i>
+                    </div>
+                </div>
+            </div>
         </div>
 
-        <!-- Operator List -->
-        <div class="bg-white rounded-xl shadow-lg overflow-hidden">
-            <div class="p-6 border-b border-gray-200">
-                <div class="flex items-center justify-between">
-                    <h2 class="text-xl font-bold text-gray-900">Daftar Operator</h2>
-                    <div class="relative">
-                        <input type="text" placeholder="Cari operator..." class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
-                        <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+        <!-- Tabs -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-100 mb-6">
+            <div class="flex border-b border-gray-200">
+                <button onclick="switchTab('operators')" id="tab-operators" class="tab-btn flex-1 px-6 py-4 text-sm font-medium text-purple-600 border-b-2 border-purple-600">
+                    <i class="fas fa-users mr-2"></i>Daftar Operator
+                </button>
+                <button onclick="switchTab('attendance')" id="tab-attendance" class="tab-btn flex-1 px-6 py-4 text-sm font-medium text-gray-600 hover:text-gray-900">
+                    <i class="fas fa-calendar-check mr-2"></i>Absensi
+                </button>
+                <button onclick="switchTab('commission')" id="tab-commission" class="tab-btn flex-1 px-6 py-4 text-sm font-medium text-gray-600 hover:text-gray-900">
+                    <i class="fas fa-money-bill-wave mr-2"></i>Komisi & Pembayaran
+                </button>
+            </div>
+        </div>
+
+        <!-- Tab Content: Operators List -->
+        <div id="content-operators" class="tab-content">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 mb-6">
+                <div class="p-6 flex items-center justify-between">
+                    <div class="relative flex-1 max-w-md">
+                        <input 
+                            type="text" 
+                            id="searchOperator"
+                            placeholder="Cari operator (nama, telepon)..."
+                            class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                        <i class="fas fa-search absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                    </div>
+                    <button onclick="openAddOperatorModal()" class="ml-4 inline-flex items-center gap-2 px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 shadow-sm transition">
+                        <i class="fas fa-plus"></i>
+                        Tambah Operator
+                    </button>
+                </div>
+            </div>
+
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Operator</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Kontak</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Bagi Hasil</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Transaksi</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Komisi Bulan Ini</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="operatorsTableBody" class="bg-white divide-y divide-gray-200">
+                            <tr>
+                                <td colspan="7" class="px-6 py-12 text-center text-gray-500">
+                                    <i class="fas fa-spinner fa-spin text-3xl mb-3"></i>
+                                    <p>Memuat data...</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Content: Attendance Calendar -->
+        <div id="content-attendance" class="tab-content hidden">
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6 mb-6">
+                <div class="flex items-center justify-between mb-6">
+                    <div class="flex items-center gap-4">
+                        <button onclick="previousMonth()" class="p-2 hover:bg-gray-100 rounded-lg">
+                            <i class="fas fa-chevron-left"></i>
+                        </button>
+                        <h3 class="text-xl font-bold" id="calendarMonth">Januari 2026</h3>
+                        <button onclick="nextMonth()" class="p-2 hover:bg-gray-100 rounded-lg">
+                            <i class="fas fa-chevron-right"></i>
+                        </button>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <select id="operatorFilter" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                            <option value="">Semua Operator</option>
+                        </select>
+                        <button onclick="checkInOperator()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
+                            <i class="fas fa-sign-in-alt mr-2"></i>Check In
+                        </button>
+                        <button onclick="checkOutOperator()" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition">
+                            <i class="fas fa-sign-out-alt mr-2"></i>Check Out
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Legend -->
+                <div class="flex gap-4 mb-4 text-sm">
+                    <div class="flex items-center gap-2">
+                        <span class="w-4 h-4 bg-green-100 border border-green-300 rounded"></span>
+                        <span>Hadir</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-4 h-4 bg-yellow-100 border border-yellow-300 rounded"></span>
+                        <span>Terlambat</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-4 h-4 bg-red-100 border border-red-300 rounded"></span>
+                        <span>Tidak Hadir</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="w-4 h-4 bg-blue-100 border border-blue-300 rounded"></span>
+                        <span>Cuti</span>
+                    </div>
+                </div>
+
+                <!-- Calendar Grid -->
+                <div class="grid grid-cols-7 gap-2">
+                    <div class="text-center font-semibold text-gray-600 py-2">Min</div>
+                    <div class="text-center font-semibold text-gray-600 py-2">Sen</div>
+                    <div class="text-center font-semibold text-gray-600 py-2">Sel</div>
+                    <div class="text-center font-semibold text-gray-600 py-2">Rab</div>
+                    <div class="text-center font-semibold text-gray-600 py-2">Kam</div>
+                    <div class="text-center font-semibold text-gray-600 py-2">Jum</div>
+                    <div class="text-center font-semibold text-gray-600 py-2">Sab</div>
+                </div>
+                <div id="calendarGrid" class="grid grid-cols-7 gap-2 mt-2">
+                    <!-- Calendar days will be populated by JavaScript -->
+                </div>
+            </div>
+
+            <!-- Attendance Summary -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                    <h4 class="font-semibold text-gray-700 mb-4">Kehadiran Bulan Ini</h4>
+                    <div id="attendanceSummary" class="space-y-2">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                    <h4 class="font-semibold text-gray-700 mb-4">Ketidakhadiran</h4>
+                    <div id="absenceSummary" class="space-y-2">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-100">
+                    <h4 class="font-semibold text-gray-700 mb-4">Keterlambatan</h4>
+                    <div id="latenessSummary" class="space-y-2">
+                        <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tab Content: Commission & Payment -->
+        <div id="content-commission" class="tab-content hidden">
+            <div class="bg-purple-50 border border-purple-200 rounded-xl p-6 mb-6">
+                <div class="flex items-start gap-3">
+                    <i class="fas fa-info-circle text-purple-600 text-2xl"></i>
+                    <div>
+                        <h4 class="font-bold text-purple-900 mb-2">Sistem Bagi Hasil 30%</h4>
+                        <ul class="text-sm text-purple-800 space-y-1">
+                            <li>✓ Operator mendapat 30% dari setiap transaksi</li>
+                            <li>✓ Jika member dapat gratis cuci (loyalty 5x), komisi tetap dihitung dari harga normal</li>
+                            <li>✓ Komisi dihitung otomatis setelah transaksi selesai</li>
+                            <li>✓ Pembayaran dilakukan setiap akhir bulan</li>
+                        </ul>
                     </div>
                 </div>
             </div>
 
-            <!-- Operators Table -->
-            <div class="overflow-x-auto">
-                <table class="w-full">
-                    <thead class="bg-gray-50 border-b border-gray-200">
-                        <tr>
-                            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Nama</th>
-                            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Telepon</th>
-                            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Status</th>
-                            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Komisi (Bulan Ini)</th>
-                            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Transaksi</th>
-                            <th class="px-6 py-3 text-left text-xs font-semibold text-gray-700 uppercase">Aksi</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-gray-200">
-                        <tr class="hover:bg-gray-50 transition">
-                            <td class="px-6 py-4">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-10 h-10 bg-gradient-to-br from-blue-400 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold">B</div>
-                                    <div>
-                                        <p class="font-semibold text-gray-900">Budi Santoso</p>
-                                        <p class="text-xs text-gray-500">ID: OPR-001</p>
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4 text-gray-700">0812345678</td>
-                            <td class="px-6 py-4">
-                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">
-                                    <i class="fas fa-circle text-green-600 mr-2" style="font-size: 0.5rem;"></i>Aktif
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 font-semibold text-green-600">Rp 1.500.000</td>
-                            <td class="px-6 py-4 text-gray-700">25</td>
-                            <td class="px-6 py-4">
-                                <button class="text-purple-600 hover:text-purple-700 font-semibold text-sm">Edit</button>
-                            </td>
-                        </tr>
-                        <tr class="hover:bg-gray-50 transition">
-                            <td class="px-6 py-4">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-10 h-10 bg-gradient-to-br from-purple-400 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold">A</div>
-                                    <div>
-                                        <p class="font-semibold text-gray-900">Adi Wijaya</p>
-                                        <p class="text-xs text-gray-500">ID: OPR-002</p>
-                                    </div>
-                                </div>
-                            </td>
-                            <td class="px-6 py-4 text-gray-700">0823456789</td>
-                            <td class="px-6 py-4">
-                                <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-800">
-                                    <i class="fas fa-circle text-green-600 mr-2" style="font-size: 0.5rem;"></i>Aktif
-                                </span>
-                            </td>
-                            <td class="px-6 py-4 font-semibold text-green-600">Rp 1.200.000</td>
-                            <td class="px-6 py-4 text-gray-700">20</td>
-                            <td class="px-6 py-4">
-                                <button class="text-purple-600 hover:text-purple-700 font-semibold text-sm">Edit</button>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+            <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                <div class="p-6 border-b border-gray-200">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-lg font-bold text-gray-900">Rincian Komisi</h3>
+                        <div class="flex gap-2">
+                            <select id="monthFilter" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500">
+                                <option value="">Bulan Ini</option>
+                                <option value="last">Bulan Lalu</option>
+                            </select>
+                            <button onclick="exportCommissionReport()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
+                                <i class="fas fa-file-excel mr-2"></i>Export Excel
+                            </button>
+                        </div>
+                    </div>
+                </div>
 
-            <!-- Empty State -->
-            <div id="emptyState" class="hidden text-center py-16">
-                <i class="fas fa-inbox text-5xl text-gray-300 mb-4 block"></i>
-                <p class="text-gray-500 mb-4">Belum ada data operator</p>
-                <button class="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-semibold">
-                    <i class="fas fa-user-plus mr-2"></i>Tambah Operator
-                </button>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Operator</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Transaksi</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Total Omzet</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Komisi (30%)</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Terbayar</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Pending</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="commissionTableBody" class="bg-white divide-y divide-gray-200">
+                            <tr>
+                                <td colspan="7" class="px-6 py-12 text-center text-gray-500">
+                                    <i class="fas fa-spinner fa-spin text-3xl mb-3"></i>
+                                    <p>Memuat data...</p>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
     </div>
 
     <script src="../js/api-client.js"></script>
     <script src="../js/auth.js"></script>
-    <script src="../js/operators.js"></script>
-    <script src="../js/utils.js"></script>
+    <script src="../js/operator.js"></script>
 </body>
 </html>
