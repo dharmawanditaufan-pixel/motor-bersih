@@ -1,7 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "version": 2,
-  "name": "motor-bersih-pos",
   "rewrites": [
     {
       "source": "/api/:path*",
@@ -31,7 +30,7 @@
       ]
     },
     {
-      "source": "/(.*\\.(css|js|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot))",
+      "source": "/(.*)",
       "headers": [
         {
           "key": "Cache-Control",
