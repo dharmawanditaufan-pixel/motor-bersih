@@ -3,66 +3,171 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-+
     <title>Scan Plat Nomor - Motor Bersih POS</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body class="bg-gray-50">
-    <div class="max-w-6xl mx-auto py-8 px-4">
+    <div class="max-w-7xl mx-auto py-8 px-4">
+        <!-- Header -->
         <div class="flex items-center justify-between mb-8">
-            <h1 class="text-3xl font-bold text-gray-900"><i class="fas fa-camera text-purple-600 mr-3"></i>Scan Plat Nomor</h1>
-            <a href="dashboard.html" class="flex items-center gap-2 px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">
-                <i class="fas fa-arrow-left"></i> Kembali
-            </a>
+            <h1 class="text-3xl font-bold text-gray-900">
+                <i class="fas fa-camera text-purple-600 mr-3"></i>Scan Plat Nomor
+            </h1>
+            <div class="flex gap-3">
+                <button onclick="showManualInputModal()" class="px-4 py-2 text-purple-700 bg-purple-50 border border-purple-300 rounded-lg hover:bg-purple-100 transition">
+                    <i class="fas fa-keyboard mr-2"></i> Input Manual
+                </button>
+                <a href="dashboard.html" class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">
+                    <i class="fas fa-arrow-left mr-2"></i> Kembali
+                </a>
+            </div>
         </div>
 
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <!-- Camera Section -->
-            <div class="lg:col-span-2 bg-white rounded-xl shadow-lg p-6">
-                <h2 class="text-xl font-bold text-gray-900 mb-4">Camera Preview</h2>
-                <div class="bg-black rounded-lg overflow-hidden aspect-video flex items-center justify-center">
-                    <video id="cameraFeed" autoplay playsinline class="w-full h-full object-cover hidden"></video>
-                    <div id="placeholderCamera" class="text-center text-white">
-                        <i class="fas fa-camera text-5xl mb-4 block opacity-50"></i>
-                        <p>Kamera tidak tersedia. Upload gambar plat nomor.</p>
+            <div class="lg:col-span-2 space-y-4">
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-xl font-bold text-gray-900">Preview Kamera</h2>
+                        <span id="cameraStatus" class="text-sm text-gray-500">Memuat kamera...</span>
+                    </div>
+                    
+                    <div class="relative bg-black rounded-lg overflow-hidden aspect-video">
+                        <video id="cameraFeed" autoplay playsinline class="w-full h-full object-cover"></video>
+                        <div id="placeholderCamera" class="absolute inset-0 flex items-center justify-center text-white bg-gray-800">
+                            <div class="text-center">
+                                <i class="fas fa-camera text-5xl mb-4 block opacity-50"></i>
+                                <p class="text-lg">Mengaktifkan kamera...</p>
+                                <p class="text-sm mt-2 text-gray-400">Izinkan akses kamera atau upload gambar</p>
+                            </div>
+                        </div>
+                        
+                        <!-- Overlay guide for plate positioning -->
+                        <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <div class="border-4 border-dashed border-yellow-400 w-3/4 h-1/2 rounded-lg opacity-50"></div>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-3 mt-6">
+                        <button id="captureButton" onclick="capturePlate()" class="flex-1 px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-semibold">
+                            <i class="fas fa-camera mr-2"></i>Ambil Foto
+                        </button>
+                        <button id="uploadButton" class="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold">
+                            <i class="fas fa-upload mr-2"></i>Upload Gambar
+                        </button>
+                        <input type="file" id="fileInput" accept="image/*" style="display: none;">
                     </div>
                 </div>
 
-                <div class="flex gap-3 mt-6">
-                    <button class="flex-1 px-4 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-semibold">
-                        <i class="fas fa-camera mr-2"></i>Ambil Foto
-                    </button>
-                    <button id="uploadButton" class="flex-1 px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-semibold">
-                        <i class="fas fa-upload mr-2"></i>Upload Gambar
-                    </button>
-                    <input type="file" id="fileInput" accept="image/*" style="display: none;">
+                <!-- Scan History -->
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h2 class="text-xl font-bold text-gray-900 mb-4">Riwayat Scan</h2>
+                    <div id="scanHistory" class="space-y-2 max-h-48 overflow-y-auto">
+                        <div class="text-center py-8 text-gray-500">
+                            <i class="fas fa-history text-3xl mb-2 block opacity-50"></i>
+                            <p class="text-sm">Belum ada riwayat scan</p>
+                        </div>
+                    </div>
                 </div>
             </div>
 
             <!-- Results Section -->
-            <div class="bg-white rounded-xl shadow-lg p-6">
-                <h2 class="text-xl font-bold text-gray-900 mb-4">Hasil Scan</h2>
-                <div id="scanResults" class="space-y-4">
-                    <div class="text-center py-8 text-gray-500">
-                        <i class="fas fa-search text-4xl mb-2 block opacity-50"></i>
-                        <p class="text-sm">Belum ada hasil scan</p>
+            <div class="space-y-4">
+                <!-- OCR Result -->
+                <div class="bg-white rounded-xl shadow-lg p-6">
+                    <h2 class="text-xl font-bold text-gray-900 mb-4">Hasil OCR</h2>
+                    <div id="ocrResult" class="text-center py-6">
+                        <div id="plateDisplay" class="hidden">
+                            <div class="bg-black text-white text-2xl font-bold py-4 px-6 rounded-lg mb-4 font-mono tracking-wider">
+                                <span id="plateNumber">-</span>
+                            </div>
+                            <button onclick="editPlateNumber()" class="text-sm text-purple-600 hover:text-purple-700">
+                                <i class="fas fa-edit mr-1"></i> Edit Plat Nomor
+                            </button>
+                        </div>
+                        <div id="noPlate" class="text-gray-500">
+                            <i class="fas fa-barcode text-4xl mb-2 block opacity-50"></i>
+                            <p class="text-sm">Scan atau upload plat nomor</p>
+                        </div>
                     </div>
                 </div>
 
-                <div id="plateInfo" class="hidden mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
-                    <h3 class="font-semibold text-green-900 mb-2"><i class="fas fa-check-circle text-green-600 mr-2"></i>Plat Ditemukan</h3>
-                    <div class="text-sm space-y-1">
-                        <p><span class="text-gray-600">Nomor Plat:</span> <strong id="detectedPlate">-</strong></p>
-                        <p><span class="text-gray-600">Kepercayaan:</span> <strong id="confidence">0%</strong></p>
+                <!-- Member Info -->
+                <div id="memberInfo" class="hidden bg-white rounded-xl shadow-lg p-6">
+                    <h3 class="text-lg font-bold text-green-700 mb-3">
+                        <i class="fas fa-user-check text-green-600 mr-2"></i>Data Member
+                    </h3>
+                    <div class="space-y-2 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Nama:</span>
+                            <strong id="memberName">-</strong>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">WhatsApp:</span>
+                            <strong id="memberWhatsApp">-</strong>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Tipe Motor:</span>
+                            <span id="memberMotorType" class="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-semibold">-</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-600">Merk:</span>
+                            <strong id="memberBrand">-</strong>
+                        </div>
+                        <div class="pt-2 border-t">
+                            <span class="text-gray-600 block mb-1">Loyalty Progress:</span>
+                            <div id="memberLoyalty" class="text-center py-2">-</div>
+                        </div>
                     </div>
-                    <button class="w-full mt-3 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-semibold">
-                        <i class="fas fa-arrow-right mr-2"></i>Gunakan
+                    <button onclick="useExistingMember()" class="w-full mt-4 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-semibold">
+                        <i class="fas fa-check mr-2"></i>Lanjut Transaksi
                     </button>
+                </div>
+
+                <!-- New Customer -->
+                <div id="newCustomer" class="hidden bg-white rounded-xl shadow-lg p-6">
+                    <h3 class="text-lg font-bold text-orange-700 mb-3">
+                        <i class="fas fa-user-plus text-orange-600 mr-2"></i>Member Baru
+                    </h3>
+                    <p class="text-sm text-gray-600 mb-4">Plat nomor tidak ditemukan di database. Daftarkan sebagai member baru?</p>
+                    <div class="flex gap-2">
+                        <button onclick="registerNewMember()" class="flex-1 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition font-semibold">
+                            <i class="fas fa-user-plus mr-2"></i>Daftar Member
+                        </button>
+                        <button onclick="continueAsGuest()" class="flex-1 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition font-semibold">
+                            <i class="fas fa-arrow-right mr-2"></i>Tamu
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
+
+    <!-- Manual Input Modal -->
+    <div id="manualInputModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-xl p-6 max-w-md w-full mx-4">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-xl font-bold text-gray-900">Input Plat Nomor Manual</h3>
+                <button onclick="closeManualInputModal()" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="mb-4">
+                <label class="block text-sm font-medium text-gray-700 mb-2">Nomor Plat</label>
+                <input type="text" id="manualPlateInput" placeholder="Contoh: B 1234 ABC" 
+                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 uppercase"
+                    oninput="this.value = this.value.toUpperCase()">
+                <p class="text-xs text-gray-500 mt-1">Format: [Kode] [Nomor] [Huruf]</p>
+            </div>
+            <button onclick="confirmManualInput()" class="w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-semibold">
+                <i class="fas fa-check mr-2"></i>Cari Member
+            </button>
+        </div>
+    </div>
+
+    <!-- Hidden canvas for image processing -->
+    <canvas id="cameraCanvas" style="display: none;"></canvas>
 
     <script src="../js/api-client.js"></script>
     <script src="../js/auth.js"></script>
