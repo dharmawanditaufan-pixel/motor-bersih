@@ -22,8 +22,9 @@ class APIClient {
         
         // Production backend URL (Vercel deployed)
         if (window.location.hostname.includes('vercel.app')) {
-            // Use environment variable or fallback
-            return window.PRODUCTION_API_URL || 'https://motor-bersih-production.up.railway.app/api/';
+            // TEMPORARY: Use local backend for testing
+            // TODO: Replace with actual Railway URL after backend deployment
+            return 'http://localhost/motor-bersih/api/';
         }
         
         // Local development - detect path
