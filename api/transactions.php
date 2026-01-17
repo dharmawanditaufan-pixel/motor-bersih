@@ -48,53 +48,99 @@ function handleGetTransactions() {
         $customer_id = $_GET['customer_id'] ?? null;
         $start_date = $_GET['start_date'] ?? null;
         $end_date = $_GET['end_date'] ?? null;
+        $payment_method = $_GET['payment_method'] ?? null;
+        $motorcycle_type = $_GET['motorcycle_type'] ?? null;
         $page = (int)($_GET['page'] ?? 1);
-        $limit = (int)($_GET['limit'] ?? 20);
+        $limit = (int)($_GET['limit'] ?? 100);
         $offset = ($page - 1) * $limit;
         
-        // Build query
-        $query = "SELECT * FROM transactions WHERE 1=1";
+        // Build query with JOINs to get customer and operator info
+        $query = "
+            SELECT 
+                t.*,
+                c.license_plate,
+                c.name as customer_name,
+                c.phone as customer_phone,
+                c.motorcycle_type,
+                c.motorcycle_brand,
+                c.is_member,
+                o.name as operator_name
+            FROM transactions t
+            LEFT JOIN customers c ON t.customer_id = c.id
+            LEFT JOIN operators o ON t.operator_id = o.id
+            WHERE 1=1
+        ";
         $params = [];
         
         if ($id) {
-            $query .= " AND id = ?";
+            $query .= " AND t.id = ?";
             $params[] = $id;
         }
         
         if ($status) {
-            $query .= " AND status = ?";
+            $query .= " AND t.status = ?";
             $params[] = $status;
         }
         
         if ($operator_id) {
-            $query .= " AND operator_id = ?";
+            $query .= " AND t.operator_id = ?";
             $params[] = $operator_id;
         }
         
         if ($customer_id) {
-            $query .= " AND customer_id = ?";
+            $query .= " AND t.customer_id = ?";
             $params[] = $customer_id;
         }
         
+        if ($payment_method) {
+            $query .= " AND t.payment_method = ?";
+            $params[] = $payment_method;
+        }
+        
+        if ($motorcycle_type) {
+            $query .= " AND c.motorcycle_type = ?";
+            $params[] = $motorcycle_type;
+        }
+        
         if ($start_date && $end_date) {
-            $query .= " AND DATE(created_at) BETWEEN ? AND ?";
+            $query .= " AND DATE(t.created_at) BETWEEN ? AND ?";
             $params[] = $start_date;
+            $params[] = $end_date;
+        } elseif ($start_date) {
+            $query .= " AND DATE(t.created_at) >= ?";
+            $params[] = $start_date;
+        } elseif ($end_date) {
+            $query .= " AND DATE(t.created_at) <= ?";
             $params[] = $end_date;
         }
         
         // Get total count
-        $countStmt = $conn->prepare(str_replace('SELECT *', 'SELECT COUNT(*) as count', explode('LIMIT', $query)[0]));
+        $countQuery = "SELECT COUNT(*) as count FROM (" . $query . ") as subquery";
+        $countStmt = $conn->prepare($countQuery);
         $countStmt->execute($params);
         $total = $countStmt->fetch()['count'];
         
         // Add ordering and pagination
-        $query .= " ORDER BY created_at DESC LIMIT ? OFFSET ?";
+        $query .= " ORDER BY t.created_at DESC LIMIT ? OFFSET ?";
         $params[] = $limit;
         $params[] = $offset;
         
         $stmt = $conn->prepare($query);
         $stmt->execute($params);
         $transactions = $stmt->fetchAll();
+        
+        // Convert numeric values and add is_loyalty_free flag
+        foreach ($transactions as &$txn) {
+            $txn['id'] = (int)$txn['id'];
+            $txn['customer_id'] = (int)$txn['customer_id'];
+            $txn['operator_id'] = (int)$txn['operator_id'];
+            $txn['amount'] = (float)$txn['amount'];
+            $txn['commission_amount'] = (float)$txn['commission_amount'];
+            $txn['is_member'] = (bool)($txn['is_member'] ?? false);
+            
+            // Check if it's a free wash (amount = 0 and member)
+            $txn['is_loyalty_free'] = $txn['is_member'] && $txn['amount'] == 0;
+        }
         
         http_response_code(200);
         echo json_encode([
@@ -122,8 +168,12 @@ function handleGetTransactions() {
 function handleCreateTransaction() {
     $data = getRequestData();
     
-    // Validate required fields
-    $validation = validateRequired($data, ['customer_id', 'operator_id', 'wash_type', 'amount', 'payment_method']);
+    // Frontend sends: transaction_id, customer_id, license_plate, customer_name, motorcycle_type, 
+    //                 price, original_price, is_loyalty_free, operator_id, payment_method, notes
+    
+    // Validate required fields (flexible to support guest transactions)
+    $requiredFields = ['operator_id', 'motorcycle_type', 'price', 'payment_method'];
+    $validation = validateRequired($data, $requiredFields);
     if ($validation !== true) {
         sendError($validation, 400);
     }
@@ -131,11 +181,47 @@ function handleCreateTransaction() {
     try {
         $conn = getConnection();
         
-        // Validate customer exists
-        $customerStmt = $conn->prepare("SELECT id FROM customers WHERE id = ?");
-        $customerStmt->execute([$data['customer_id']]);
-        if (!$customerStmt->fetch()) {
-            sendError('Customer not found', 404);
+        // Handle customer (create if guest or use existing member)
+        $customerId = null;
+        if (!empty($data['customer_id'])) {
+            // Validate existing customer
+            $customerStmt = $conn->prepare("SELECT id FROM customers WHERE id = ?");
+            $customerStmt->execute([$data['customer_id']]);
+            if ($customerStmt->fetch()) {
+                $customerId = $data['customer_id'];
+            }
+        }
+        
+        // If no customer_id or not found, create guest customer
+        if (!$customerId && !empty($data['license_plate']) && !empty($data['customer_name'])) {
+            // Check if plate already exists
+            $plateCheck = $conn->prepare(
+                "SELECT id FROM customers WHERE REPLACE(UPPER(license_plate), ' ', '') = REPLACE(UPPER(?), ' ', '')"
+            );
+            $plateCheck->execute([$data['license_plate']]);
+            $existingCustomer = $plateCheck->fetch();
+            
+            if ($existingCustomer) {
+                $customerId = $existingCustomer['id'];
+            } else {
+                // Create new guest customer
+                $insertCustomer = $conn->prepare(
+                    "INSERT INTO customers 
+                    (license_plate, name, phone, motorcycle_type, is_member, created_at)
+                    VALUES (?, ?, ?, ?, false, NOW())"
+                );
+                $insertCustomer->execute([
+                    strtoupper(trim($data['license_plate'])),
+                    $data['customer_name'],
+                    $data['customer_phone'] ?? null,
+                    $data['motorcycle_type']
+                ]);
+                $customerId = $conn->lastInsertId();
+            }
+        }
+        
+        if (!$customerId) {
+            sendError('Customer information required', 400);
         }
         
         // Validate operator exists
@@ -146,27 +232,33 @@ function handleCreateTransaction() {
             sendError('Operator not found', 404);
         }
         
-        // Generate unique transaction code
-        $transactionCode = 'TRX' . date('YmdHis') . '-' . mt_rand(100, 999);
+        // Use frontend transaction_id or generate new one
+        $transactionCode = $data['transaction_id'] ?? ('TRX' . date('YmdHis') . '-' . mt_rand(100, 999));
         
-        // Calculate commission
-        $amount = (float)$data['amount'];
+        // Calculate commission (30% even for free washes as per requirement)
+        $price = (float)$data['price'];
+        $originalPrice = (float)($data['original_price'] ?? $price);
+        $isLoyaltyFree = isset($data['is_loyalty_free']) && $data['is_loyalty_free'] === true;
         $commissionRate = (float)$operator['commission_rate'];
-        $commissionAmount = ($amount * $commissionRate) / 100;
         
-        // Prepare insert statement
+        // Commission based on original price for free washes
+        $commissionBasePrice = $isLoyaltyFree ? $originalPrice : $price;
+        $commissionAmount = ($commissionBasePrice * $commissionRate) / 100;
+        
+        // Prepare insert statement with all fields from frontend
         $insertStmt = $conn->prepare(
             "INSERT INTO transactions 
-            (transaction_code, customer_id, operator_id, wash_type, amount, commission_amount, payment_method, status, notes, created_at)
+            (transaction_code, customer_id, operator_id, wash_type, amount, commission_amount, 
+             payment_method, status, notes, created_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())"
         );
         
         $insertStmt->execute([
             $transactionCode,
-            $data['customer_id'],
+            $customerId,
             $data['operator_id'],
-            $data['wash_type'] ?? 'standard',
-            $amount,
+            'standard', // Default wash type
+            $price, // Final price (0 if free)
             $commissionAmount,
             $data['payment_method'],
             'completed',
@@ -186,14 +278,14 @@ function handleCreateTransaction() {
             $commissionAmount
         ]);
         
-        // Update customer wash count
+        // Update customer stats
         $updateStmt = $conn->prepare(
             "UPDATE customers SET total_washes = total_washes + 1, last_wash_date = NOW() 
              WHERE id = ?"
         );
-        $updateStmt->execute([$data['customer_id']]);
+        $updateStmt->execute([$customerId]);
         
-        // Update operator wash count and commission
+        // Update operator stats
         $updateOpStmt = $conn->prepare(
             "UPDATE operators SET total_washes = total_washes + 1, total_commission = total_commission + ? 
              WHERE id = ?"
@@ -202,8 +294,10 @@ function handleCreateTransaction() {
         
         logMessage('TRANSACTION_CREATED', [
             'code' => $transactionCode,
-            'customer_id' => $data['customer_id'],
-            'amount' => $amount,
+            'customer_id' => $customerId,
+            'price' => $price,
+            'is_free' => $isLoyaltyFree,
+            'commission' => $commissionAmount,
             'user' => $_SESSION['username'] ?? 'unknown'
         ], 'INFO');
         
@@ -214,10 +308,12 @@ function handleCreateTransaction() {
             'data' => [
                 'id' => (int)$transactionId,
                 'transaction_code' => $transactionCode,
-                'customer_id' => (int)$data['customer_id'],
+                'customer_id' => (int)$customerId,
                 'operator_id' => (int)$data['operator_id'],
-                'amount' => $amount,
+                'price' => $price,
+                'original_price' => $originalPrice,
                 'commission_amount' => $commissionAmount,
+                'is_loyalty_free' => $isLoyaltyFree,
                 'status' => 'completed'
             ]
         ]);
