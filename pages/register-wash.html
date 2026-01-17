@@ -6,226 +6,193 @@
     <title>Transaksi Baru - Motor Bersih POS</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        .step-hidden { display: none; }
-        .step-container { animation: fadeIn 0.3s ease; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        .wash-type-option {
-            padding: 1rem;
-            border: 2px solid #e5e7eb;
-            border-radius: 0.5rem;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        .wash-type-option:hover {
-            border-color: #a78bfa;
-            background-color: #f9f5ff;
-        }
-        .wash-type-option.selected {
-            border-color: #7c3aed;
-            background-color: #f9f5ff;
-        }
-    </style>
 </head>
 <body class="bg-gray-50">
-    <div id="loader" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" style="display: none;">
-        <div class="bg-white rounded-lg p-8 text-center">
-            <i class="fas fa-spinner fa-spin text-4xl text-purple-600 mb-4 block"></i>
-            <p class="text-gray-700 font-semibold">Processing transaction...</p>
-        </div>
-    </div>
-
     <div class="max-w-4xl mx-auto py-8 px-4">
         <!-- Header -->
         <div class="flex items-center justify-between mb-8">
             <div>
-                <h1 class="text-3xl font-bold text-gray-900"><i class="fas fa-motorcycle text-purple-600 mr-3"></i>Transaksi Cuci Motor</h1>
-                <p class="text-gray-600 mt-1">ID: <span id="transactionId" class="font-semibold text-purple-600">TRX-000001</span></p>
+                <h1 class="text-3xl font-bold text-gray-900">
+                    <i class="fas fa-motorcycle text-purple-600 mr-3"></i>Transaksi Cuci Motor
+                </h1>
+                <p class="text-gray-600 mt-1">ID: <span id="transactionId" class="font-semibold text-purple-600">-</span></p>
             </div>
-            <a href="dashboard.html" class="flex items-center gap-2 px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">
-                <i class="fas fa-arrow-left"></i> Kembali
+            <a href="dashboard.html" class="px-4 py-2 text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition">
+                <i class="fas fa-arrow-left mr-2"></i> Kembali
             </a>
         </div>
 
-        <!-- Step 1: Vehicle Data -->
-        <div data-step="1" class="bg-white rounded-xl shadow-lg p-8 step-container">
-            <div class="mb-6">
-                <h2 class="text-2xl font-bold text-gray-900 mb-2"><i class="fas fa-motorcycle text-purple-600 mr-2"></i>Langkah 1: Data Motor</h2>
-                <p class="text-gray-600">Masukkan informasi motor dan pelanggan</p>
-            </div>
-
-            <form id="vehicleForm" class="space-y-6">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2"><i class="fas fa-car text-purple-600 mr-2"></i>Plat Nomor</label>
-                        <div class="flex gap-2">
-                            <input type="text" id="licensePlate" placeholder="B 1234 ABC" required 
-                                class="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 uppercase">
-                            <a href="camera-capture-new.html" class="px-4 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2">
-                                <i class="fas fa-camera"></i>
-                                <span class="hidden md:inline">Scan</span>
-                            </a>
-                        </div>
-                        <p class="text-xs text-gray-500 mt-1">Format: 2 huruf + 1-4 angka + 1-3 huruf atau klik Scan</p>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-semibold text-gray-700 mb-2"><i class="fas fa-motorcycle text-purple-600 mr-2"></i>Jenis Motor</label>
-                        <select id="motorcycleType" required 
-                            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
-                            <option value="">- Pilih -</option>
-                            <option value="matic">Matic</option>
-                            <option value="sport">Sport/Bebek</option>
-                            <option value="bigbike">Big Bike</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="bg-gray-50 rounded-lg p-6">
-                    <h3 class="font-semibold text-gray-900 mb-4"><i class="fas fa-user-plus text-purple-600 mr-2"></i>Data Pelanggan</h3>
+        <!-- Transaction Form -->
+        <div class="bg-white rounded-xl shadow-lg p-8">
+            <form id="transactionForm" class="space-y-6">
+                <!-- Customer & Vehicle Info -->
+                <div class="border-b border-gray-200 pb-6">
+                    <h2 class="text-xl font-bold text-gray-900 mb-4">
+                        <i class="fas fa-user-circle text-purple-600 mr-2"></i>Data Customer & Motor
+                    </h2>
+                    
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- License Plate -->
                         <div>
-                            <label class="text-sm font-semibold text-gray-700 block mb-2">Nama</label>
-                            <input type="text" id="customerName" placeholder="Nama pelanggan" 
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Plat Nomor <span class="text-red-500">*</span>
+                            </label>
+                            <div class="flex gap-2">
+                                <input type="text" id="licensePlate" required placeholder="B 1234 ABC" 
+                                    class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 uppercase">
+                                <a href="camera-capture.html" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition">
+                                    <i class="fas fa-camera"></i>
+                                </a>
+                            </div>
+                            <div id="memberInfo" class="hidden mt-2 p-3 bg-green-50 border border-green-200 rounded-lg">
+                                <p class="text-sm font-semibold text-green-700">
+                                    <i class="fas fa-check-circle mr-1"></i><span id="memberName">-</span>
+                                </p>
+                                <p id="loyaltyInfo" class="text-xs text-green-600 mt-1"></p>
+                            </div>
                         </div>
+
+                        <!-- Customer Name -->
                         <div>
-                            <label class="text-sm font-semibold text-gray-700 block mb-2">No. HP</label>
-                            <input type="tel" id="customerPhone" placeholder="081234567890" 
-                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Nama Customer</label>
+                            <input type="text" id="customerName" placeholder="Nama pelanggan (opsional)"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                        </div>
+
+                        <!-- Phone -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">No. HP/WhatsApp</label>
+                            <input type="tel" id="customerPhone" placeholder="08123456789"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                        </div>
+
+                        <!-- Motorcycle Type -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Tipe Motor <span class="text-red-500">*</span>
+                            </label>
+                            <select id="motorcycleType" required onchange="updatePrice()"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                                <option value="">- Pilih Tipe Motor -</option>
+                                <option value="motor_kecil" data-price="15000">Motor Kecil (Rp 15.000)</option>
+                                <option value="motor_sedang" data-price="20000">Motor Sedang (Rp 20.000)</option>
+                                <option value="motor_besar" data-price="20000">Motor Besar (Rp 20.000)</option>
+                            </select>
                         </div>
                     </div>
                 </div>
 
-                <div class="flex justify-end gap-4">
-                    <button type="button" onclick="window.history.back()" class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-semibold">Batal</button>
-                    <button type="submit" class="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-semibold">Lanjut</button>
+                <!-- Service Details -->
+                <div class="border-b border-gray-200 pb-6">
+                    <h2 class="text-xl font-bold text-gray-900 mb-4">
+                        <i class="fas fa-tasks text-purple-600 mr-2"></i>Detail Layanan
+                    </h2>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Operator -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Operator <span class="text-red-500">*</span>
+                            </label>
+                            <select id="operatorId" required
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                                <option value="">- Pilih Operator -</option>
+                            </select>
+                        </div>
+
+                        <!-- Payment Method -->
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Metode Pembayaran</label>
+                            <select id="paymentMethod"
+                                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500">
+                                <option value="cash">Tunai</option>
+                                <option value="transfer">Transfer Bank</option>
+                                <option value="qris">QRIS</option>
+                                <option value="debit">Kartu Debit</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Notes -->
+                    <div class="mt-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Catatan (Opsional)</label>
+                        <textarea id="notes" rows="2" placeholder="Tambahkan catatan khusus untuk transaksi ini..."
+                            class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500"></textarea>
+                    </div>
+                </div>
+
+                <!-- Summary -->
+                <div class="bg-purple-50 border-2 border-purple-200 rounded-xl p-6">
+                    <h2 class="text-xl font-bold text-purple-900 mb-4">
+                        <i class="fas fa-receipt text-purple-600 mr-2"></i>Ringkasan Pembayaran
+                    </h2>
+                    
+                    <div class="space-y-3">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-700">Tipe Motor:</span>
+                            <span id="summaryType" class="font-semibold text-gray-900">-</span>
+                        </div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-gray-700">Harga Normal:</span>
+                            <span id="summaryNormalPrice" class="font-semibold text-gray-900">Rp 0</span>
+                        </div>
+                        <div id="loyaltyDiscountRow" class="hidden flex justify-between text-sm">
+                            <span class="text-green-700">
+                                <i class="fas fa-gift mr-1"></i>Diskon Loyalty (Gratis):
+                            </span>
+                            <span id="summaryDiscount" class="font-semibold text-green-600">- Rp 0</span>
+                        </div>
+                        <div class="border-t-2 border-purple-300 pt-3 flex justify-between">
+                            <span class="text-lg font-bold text-purple-900">Total Bayar:</span>
+                            <span id="summaryTotal" class="text-2xl font-bold text-purple-600">Rp 0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons -->
+                <div class="flex gap-4">
+                    <button type="button" onclick="window.location.href='dashboard.html'" 
+                        class="flex-1 px-6 py-3 border-2 border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition font-semibold">
+                        <i class="fas fa-times mr-2"></i>Batal
+                    </button>
+                    <button type="submit" 
+                        class="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition font-semibold">
+                        <i class="fas fa-check mr-2"></i>Proses Transaksi
+                    </button>
                 </div>
             </form>
-        </div>
-
-        <!-- Step 2: Service Selection -->
-        <div data-step="2" class="bg-white rounded-xl shadow-lg p-8 step-container step-hidden">
-            <div class="mb-6">
-                <h2 class="text-2xl font-bold text-gray-900 mb-2"><i class="fas fa-list-check text-purple-600 mr-2"></i>Langkah 2: Pilih Layanan</h2>
-            </div>
-
-            <form id="serviceForm" class="space-y-6">
-                <!-- Wash Types -->
-                <div>
-                    <label class="block text-sm font-semibold text-gray-700 mb-4">Jenis Cuci</label>
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <label class="wash-type-option selected">
-                            <input type="radio" name="washType" value="basic" checked hidden>
-                            <div>
-                                <h4 class="font-semibold">Basic (Rp 25.000)</h4>
-                                <p class="text-sm text-gray-600 mt-1">Cuci badan saja</p>
-                            </div>
-                        </label>
-                        <label class="wash-type-option">
-                            <input type="radio" name="washType" value="standard" hidden>
-                            <div>
-                                <h4 class="font-semibold">Standard (Rp 50.000)</h4>
-                                <p class="text-sm text-gray-600 mt-1">Badan + roda + spion</p>
-                            </div>
-                        </label>
-                        <label class="wash-type-option">
-                            <input type="radio" name="washType" value="premium" hidden>
-                            <div>
-                                <h4 class="font-semibold">Premium (Rp 100.000)</h4>
-                                <p class="text-sm text-gray-600 mt-1">Lengkap + detailing</p>
-                            </div>
-                        </label>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label class="text-sm font-semibold text-gray-700 block mb-3">Operator</label>
-                        <select id="operatorSelect" required class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
-                            <option value="">- Pilih Operator -</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="text-sm font-semibold text-gray-700 block mb-3">Metode Bayar</label>
-                        <select id="paymentMethod" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500">
-                            <option value="cash">Tunai</option>
-                            <option value="transfer">Transfer</option>
-                            <option value="qris">QRIS</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="bg-purple-50 rounded-lg p-6 border-2 border-purple-200">
-                    <h3 class="font-semibold text-purple-900 mb-3">Ringkasan Transaksi</h3>
-                    <div id="transactionSummary" class="space-y-2 text-sm">Memuat...</div>
-                </div>
-
-                <div class="flex justify-between gap-4">
-                    <button type="button" onclick="goToStep(1)" class="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 font-semibold">Kembali</button>
-                    <button type="button" id="submitTransaction" class="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold">Konfirmasi</button>
-                </div>
-            </form>
-        </div>
-
-        <!-- Step 3: Success -->
-        <div data-step="3" class="bg-white rounded-xl shadow-lg p-8 step-container step-hidden">
-            <div id="successContainer" class="text-center space-y-6">
-                <div class="text-6xl text-green-600 mb-4"><i class="fas fa-check-circle"></i></div>
-                <h2 class="text-3xl font-bold text-gray-900">Transaksi Berhasil!</h2>
-                <p class="text-gray-600">Cuci motor telah didaftarkan</p>
-            </div>
         </div>
     </div>
 
-    <script src="../js/auth-guard.js"></script>
+    <!-- Success Modal -->
+    <div id="successModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-xl p-8 max-w-md w-full mx-4 text-center">
+            <div class="text-6xl text-green-600 mb-4">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <h2 class="text-2xl font-bold text-gray-900 mb-2">Transaksi Berhasil!</h2>
+            <p class="text-gray-600 mb-4">Transaksi cuci motor telah dicatat</p>
+            <div class="bg-gray-50 rounded-lg p-4 mb-6 text-left">
+                <p class="text-sm text-gray-600 mb-1">ID Transaksi:</p>
+                <p id="successTrxId" class="font-mono font-bold text-purple-600 text-lg">-</p>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="printReceipt()" class="flex-1 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition">
+                    <i class="fas fa-print mr-2"></i>Cetak
+                </button>
+                <button onclick="newTransaction()" class="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition">
+                    <i class="fas fa-plus mr-2"></i>Transaksi Baru
+                </button>
+            </div>
+            <button onclick="closeModal()" class="mt-3 w-full px-4 py-2 text-gray-600 hover:text-gray-800">
+                Kembali ke Dashboard
+            </button>
+        </div>
+    </div>
+
     <script src="../js/api-client.js"></script>
-    <script src="../js/session-persistence.js"></script>
     <script src="../js/auth.js"></script>
     <script src="../js/transactions-handler.js"></script>
-
-    <script>
-        // Check for scanned plate number from camera-capture page
-        document.addEventListener('DOMContentLoaded', () => {
-            const scannedPlate = sessionStorage.getItem('scannedPlate');
-            if (scannedPlate) {
-                const licensePlateInput = document.getElementById('licensePlate');
-                if (licensePlateInput) {
-                    licensePlateInput.value = scannedPlate;
-                    licensePlateInput.classList.add('border-green-500', 'bg-green-50');
-                    
-                    // Show notification
-                    const notification = document.createElement('div');
-                    notification.className = 'fixed top-4 right-4 bg-green-500 text-white px-6 py-4 rounded-lg shadow-lg z-50 flex items-center gap-3';
-                    notification.innerHTML = `
-                        <i class="fas fa-check-circle text-xl"></i>
-                        <span class="font-semibold">Plat nomor dari scan: ${scannedPlate}</span>
-                    `;
-                    document.body.appendChild(notification);
-                    
-                    setTimeout(() => {
-                        notification.style.transition = 'opacity 0.3s';
-                        notification.style.opacity = '0';
-                        setTimeout(() => notification.remove(), 300);
-                    }, 3000);
-                    
-                    // Clear from sessionStorage
-                    sessionStorage.removeItem('scannedPlate');
-                }
-            }
-        });
-        
-        function goToStep(step) {
-            document.querySelectorAll('[data-step]').forEach(s => s.classList.add('step-hidden'));
-            document.querySelector(`[data-step="${step}"]`).classList.remove('step-hidden');
-        }
-
-        document.querySelectorAll('input[name="washType"]').forEach(radio => {
-            radio.addEventListener('change', function() {
-                document.querySelectorAll('.wash-type-option').forEach(opt => opt.classList.remove('selected'));
-                this.parentElement.classList.add('selected');
-                if (window.transactionManager) window.transactionManager.updatePrice();
-            });
-        });
-    </script>
+    <script src="../js/utils.js"></script>
 </body>
 </html>

@@ -1,527 +1,391 @@
 /**
- * Transaction Manager for Motor Bersih
- * Handles vehicle data capture, operator selection, and transaction submission
- * With real-time price calculation and API integration
+ * Transaction Handler for Register Wash Page
  */
 
-class TransactionManager {
-    constructor() {
-        this.currentTransaction = {
-            customer_id: null,
-            operator_id: null,
-            wash_type: 'standard',
-            amount: 0,
-            payment_method: 'cash',
-            customer_name: '',
-            license_plate: '',
-            motorcycle_type: 'matic'
-        };
+let apiClient = null;
+let currentMemberData = null;
+let currentTransactionId = null;
 
-        this.washPrices = {
-            'basic': 25000,
-            'standard': 50000,
-            'premium': 100000
-        };
+// Pricing configuration
+const PRICING = {
+    'motor_kecil': 15000,
+    'motor_sedang': 20000,
+    'motor_besar': 20000
+};
 
-        this.apiClient = null;
-        this.operators = [];
-        this.customers = [];
+const TYPE_NAMES = {
+    'motor_kecil': 'Motor Kecil',
+    'motor_sedang': 'Motor Sedang',
+    'motor_besar': 'Motor Besar'
+};
 
-        this.init();
-    }
-
-    async init() {
-        // Initialize API client first
-        if (typeof APIClient === 'undefined') {
-            console.error('APIClient not loaded');
-            alert('System error: APIClient not available');
-            return;
-        }
-
-        if (typeof window.apiClient === 'undefined') {
-            window.apiClient = new APIClient();
-            await window.apiClient.init();
-        }
-        this.apiClient = window.apiClient;
-
-        // Refresh token to keep session alive
-        this.apiClient.refreshToken();
-
-        // Check authentication - let API client restore token if needed
-        const token = this.apiClient.getToken();
-        
-        if (!token) {
-            console.warn('No token found, redirecting to login...');
-            alert('Sesi Anda telah berakhir. Silakan login kembali.');
-            window.location.href = '../index.html';
-            return;
-        }
-
-        console.log('✓ Token found:', token.substring(0, 20) + '...');
-        console.log('✓ User authenticated');
-        console.log('✓ Session refreshed');
-
-        // Load operators
-        await this.loadOperators();
-
-        // Setup form listeners
-        this.setupFormListeners();
-
-        // Generate transaction ID
-        this.generateTransactionId();
-
-        console.log('✓ Transaction manager initialized');
-    }
-
-    checkAuth() {
-        // Method 1: Check authManager
-        const authManager = window.authManager;
-        if (authManager && authManager.isAuthenticated) {
-            return true;
-        }
-
-        // Method 2: Check token in storage
-        const token = sessionStorage.getItem('authToken') || localStorage.getItem('authToken');
-        if (token) {
-            console.log('Token found in storage, user is authenticated');
-            return true;
-        }
-
-        // Method 3: Check if we have user data
-        const userData = localStorage.getItem('currentUser');
-        if (userData) {
-            try {
-                const user = JSON.parse(userData);
-                if (user && user.username) {
-                    return true;
-                }
-            } catch (e) {
-                console.error('Error parsing user data:', e);
-            }
-        }
-
-        // No authentication found
-        console.warn('No authentication found, redirecting to login');
+document.addEventListener('DOMContentLoaded', async function() {
+    // Initialize API client
+    apiClient = new APIClient();
+    
+    // Check authentication
+    if (!isAuthenticated()) {
         window.location.href = '../index.html';
-        return false;
+        return;
     }
-
-    setupFormListeners() {
-        // Vehicle form submission
-        const vehicleForm = document.getElementById('vehicleForm');
-        if (vehicleForm) {
-            vehicleForm.addEventListener('submit', (e) => this.handleVehicleSubmit(e));
-        }
-
-        // Wash type selection
-        document.querySelectorAll('input[name="washType"]').forEach(radio => {
-            radio.addEventListener('change', () => this.updatePrice());
-        });
-
-        // Operator selection
-        const operatorSelect = document.getElementById('operatorSelect');
-        if (operatorSelect) {
-            operatorSelect.addEventListener('change', (e) => {
-                this.currentTransaction.operator_id = e.target.value;
-            });
-        }
-
-        // Payment method
-        const paymentSelect = document.getElementById('paymentMethod');
-        if (paymentSelect) {
-            paymentSelect.addEventListener('change', (e) => {
-                this.currentTransaction.payment_method = e.target.value;
-            });
-        }
-
-        // Submit transaction button
-        const submitBtn = document.getElementById('submitTransaction');
-        if (submitBtn) {
-            submitBtn.addEventListener('click', () => this.submitTransaction());
-        }
-
-        // New transaction button
-        const newTransBtn = document.getElementById('newTransaction');
-        if (newTransBtn) {
-            newTransBtn.addEventListener('click', () => this.resetForm());
-        }
-
-        // Real-time price calculation
-        document.getElementById('washType')?.addEventListener('change', () => this.updatePrice());
-        document.getElementById('customAmount')?.addEventListener('input', (e) => {
-            this.currentTransaction.amount = parseFloat(e.target.value) || 0;
-            this.updatePriceDisplay();
-        });
-
-        // License plate input with validation
-        const platInput = document.getElementById('licensePlate');
-        if (platInput) {
-            platInput.addEventListener('input', (e) => {
-                e.target.value = e.target.value.toUpperCase();
-                this.validateLicensePlate(e.target.value);
-            });
-        }
+    
+    // Generate transaction ID
+    generateTransactionId();
+    
+    // Load operators
+    await loadOperators();
+    
+    // Setup event listeners
+    setupEventListeners();
+    
+    // Check URL parameters (from camera scan or member selection)
+    checkUrlParameters();
+    
+    // Initialize today's date filter (if on transactions.html)
+    if (document.getElementById('dateFilter')) {
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('dateFilter').value = today;
     }
+});
 
-    async loadOperators() {
-        try {
-            // For now, using hardcoded operators
-            // In production, fetch from /api/operators
-            this.operators = [
-                { id: 1, name: 'Budi Santoso', commission_rate: 5 },
-                { id: 2, name: 'Andi Wijaya', commission_rate: 5 }
-            ];
-
-            this.populateOperatorSelect();
-        } catch (error) {
-            console.error('Error loading operators:', error);
-            this.showError('Gagal memuat daftar operator');
-        }
-    }
-
-    populateOperatorSelect() {
-        const select = document.getElementById('operatorSelect');
-        if (!select) return;
-
-        select.innerHTML = '<option value="">- Pilih Operator -</option>' +
-            this.operators.map(op => 
-                `<option value="${op.id}">${op.name} (${op.commission_rate}%)</option>`
-            ).join('');
-    }
-
-    generateTransactionId() {
-        const timestamp = Date.now().toString().slice(-6);
-        const random = Math.random().toString(36).substr(2, 4).toUpperCase();
-        const id = `TRX-${timestamp}-${random}`;
-        
-        const elem = document.getElementById('transactionId');
-        if (elem) elem.textContent = id;
-    }
-
-    handleVehicleSubmit(e) {
-        e.preventDefault();
-
-        // Validate inputs
-        const licensePlate = document.getElementById('licensePlate')?.value.trim();
-        const motorcycleType = document.getElementById('motorcycleType')?.value;
-        const customerName = document.getElementById('customerName')?.value.trim();
-        const customerPhone = document.getElementById('customerPhone')?.value.trim();
-
-        if (!licensePlate || !motorcycleType) {
-            this.showError('Plat nomor dan jenis motor harus diisi');
-            return;
-        }
-
-        // Save to current transaction
-        this.currentTransaction.license_plate = licensePlate;
-        this.currentTransaction.motorcycle_type = motorcycleType;
-        this.currentTransaction.customer_name = customerName;
-        this.currentTransaction.customer_phone = customerPhone;
-
-        // Show next step
-        this.showStep(2);
-    }
-
-    showStep(stepNumber) {
-        document.querySelectorAll('[data-step]').forEach(step => {
-            step.style.display = 'none';
-        });
-
-        const targetStep = document.querySelector(`[data-step="${stepNumber}"]`);
-        if (targetStep) {
-            targetStep.style.display = 'block';
-            targetStep.scrollIntoView({ behavior: 'smooth' });
-        }
-    }
-
-    validateLicensePlate(plate) {
-        // Indonesian license plate pattern: B 1234 ABC or similar
-        const pattern = /^[A-Z]{1,2}\s?\d{1,4}\s?[A-Z]{1,3}$/;
-        const isValid = pattern.test(plate) || plate.length === 0;
-
-        const input = document.getElementById('licensePlate');
-        if (input) {
-            input.classList.toggle('border-red-500', !isValid && plate.length > 0);
-            input.classList.toggle('border-green-500', isValid && plate.length > 0);
-        }
-
-        return isValid;
-    }
-
-    updatePrice() {
-        const selectedType = document.querySelector('input[name="washType"]:checked')?.value || 'standard';
-        this.currentTransaction.wash_type = selectedType;
-        this.currentTransaction.amount = this.washPrices[selectedType] || 50000;
-        this.updatePriceDisplay();
-    }
-
-    updatePriceDisplay() {
-        const priceDisplay = document.getElementById('priceDisplay');
-        if (priceDisplay) {
-            priceDisplay.textContent = 'Rp ' + (this.currentTransaction.amount || 0).toLocaleString('id-ID');
-        }
-
-        // Update summary
-        this.updateTransactionSummary();
-    }
-
-    updateTransactionSummary() {
-        const summary = document.getElementById('transactionSummary');
-        if (!summary) return;
-
-        const operator = this.operators.find(op => op.id == this.currentTransaction.operator_id);
-        const commissionRate = operator?.commission_rate || 0;
-        const commissionAmount = (this.currentTransaction.amount * commissionRate) / 100;
-
-        summary.innerHTML = `
-            <div class="space-y-3">
-                <div class="flex justify-between">
-                    <span class="text-gray-600">Plat Nomor:</span>
-                    <span class="font-semibold">${this.currentTransaction.license_plate}</span>
-                </div>
-                <div class="flex justify-between">
-                    <span class="text-gray-600">Jenis Motor:</span>
-                    <span class="font-semibold">${this.currentTransaction.motorcycle_type}</span>
-                </div>
-                <div class="flex justify-between">
-                    <span class="text-gray-600">Tipe Cuci:</span>
-                    <span class="font-semibold">${this.currentTransaction.wash_type}</span>
-                </div>
-                <div class="flex justify-between">
-                    <span class="text-gray-600">Operator:</span>
-                    <span class="font-semibold">${operator?.name || '-'}</span>
-                </div>
-                <hr class="border-gray-200">
-                <div class="flex justify-between text-lg">
-                    <span class="font-semibold text-gray-900">Harga:</span>
-                    <span class="font-bold text-purple-600">Rp ${(this.currentTransaction.amount || 0).toLocaleString('id-ID')}</span>
-                </div>
-                <div class="flex justify-between text-sm">
-                    <span class="text-gray-600">Komisi (${commissionRate}%):</span>
-                    <span class="text-gray-600">Rp ${commissionAmount.toLocaleString('id-ID')}</span>
-                </div>
-                <div class="flex justify-between text-sm">
-                    <span class="text-gray-600">Metode Bayar:</span>
-                    <span class="font-semibold">${this.getPaymentMethodLabel(this.currentTransaction.payment_method)}</span>
-                </div>
-            </div>
-        `;
-    }
-
-    getPaymentMethodLabel(method) {
-        const labels = {
-            'cash': 'Tunai',
-            'transfer': 'Transfer Bank',
-            'qris': 'QRIS',
-            'ewallet': 'E-Wallet'
-        };
-        return labels[method] || method;
-    }
-
-    async submitTransaction() {
-        try {
-            // Check authentication first
-            const token = this.apiClient.getToken();
-            if (!token) {
-                alert('Session expired. Please login again.');
-                window.location.href = '../index.html';
-                return;
-            }
-
-            // Validate required fields
-            if (!this.currentTransaction.operator_id) {
-                this.showError('Silakan pilih operator');
-                return;
-            }
-
-            if (!this.currentTransaction.amount || this.currentTransaction.amount <= 0) {
-                this.showError('Harga tidak valid');
-                return;
-            }
-
-            // Show loading
-            this.showLoading(true);
-
-            console.log('Submitting transaction...');
-            console.log('Token:', token.substring(0, 20) + '...');
-            console.log('Base URL:', this.apiClient.baseURL);
-
-            // Prepare transaction data
-            const transactionData = {
-                customer_id: 1, // Default customer for now
-                operator_id: parseInt(this.currentTransaction.operator_id),
-                wash_type: this.currentTransaction.wash_type,
-                amount: this.currentTransaction.amount,
-                payment_method: this.currentTransaction.payment_method,
-                notes: `${this.currentTransaction.motorcycle_type} - ${this.currentTransaction.license_plate}`
-            };
-
-            console.log('Transaction data:', transactionData);
-
-            // Submit to API
-            const response = await fetch(this.apiClient.baseURL + 'transactions.php', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + token
-                },
-                body: JSON.stringify(transactionData)
-            });
-
-            console.log('Response status:', response.status);
-            console.log('Response headers:', response.headers);
-
-            // Handle non-OK responses
-            if (!response.ok) {
-                if (response.status === 401) {
-                    alert('Session expired. Please login again.');
-                    localStorage.removeItem('authToken');
-                    sessionStorage.removeItem('authToken');
-                    window.location.href = '../index.html';
-                    return;
-                }
-                
-                const errorText = await response.text();
-                console.error('Error response:', errorText);
-                throw new Error(`HTTP ${response.status}: ${errorText}`);
-            }
-
-            const result = await response.json();
-            console.log('Response data:', result);
-
-            if (!result.success) {
-                throw new Error(result.message || result.error || 'Failed to create transaction');
-            }
-
-            // Show success
-            this.showSuccess(result.transaction || result);
-
-        } catch (error) {
-            console.error('Error submitting transaction:', error);
-            this.showError('Error: ' + error.message);
-        } finally {
-            this.showLoading(false);
-        }
-    }
-
-    showSuccess(transaction) {
-        const container = document.getElementById('successContainer');
-        if (!container) return;
-
-        container.innerHTML = `
-            <div class="text-center space-y-4">
-                <div class="text-6xl text-green-600 mb-4">
-                    <i class="fas fa-check-circle"></i>
-                </div>
-                <h2 class="text-2xl font-bold text-gray-900">Transaksi Berhasil!</h2>
-                <p class="text-gray-600">Cuci motor telah didaftarkan ke sistem</p>
-                
-                <div class="bg-gray-50 rounded-lg p-6 my-6">
-                    <div class="space-y-2 text-left">
-                        <div class="flex justify-between">
-                            <span class="text-gray-600">Kode Transaksi:</span>
-                            <span class="font-mono font-bold text-purple-600">${transaction.transaction_code}</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-600">Nominal:</span>
-                            <span class="font-semibold">Rp ${(transaction.amount || 0).toLocaleString('id-ID')}</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-600">Komisi:</span>
-                            <span class="font-semibold">Rp ${(transaction.commission_amount || 0).toLocaleString('id-ID')}</span>
-                        </div>
-                        <div class="flex justify-between">
-                            <span class="text-gray-600">Status:</span>
-                            <span class="px-3 py-1 rounded-full text-sm font-semibold bg-green-100 text-green-800">${transaction.status}</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="flex gap-4 justify-center">
-                    <button onclick="window.location.href='dashboard.html'" class="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition font-semibold">
-                        <i class="fas fa-home mr-2"></i>Kembali ke Dashboard
-                    </button>
-                    <button id="newTransaction" class="px-6 py-3 border-2 border-purple-600 text-purple-600 rounded-lg hover:bg-purple-50 transition font-semibold">
-                        <i class="fas fa-plus mr-2"></i>Transaksi Baru
-                    </button>
-                </div>
-            </div>
-        `;
-
-        container.style.display = 'block';
-        document.getElementById('vehicleForm').style.display = 'none';
-        document.getElementById('serviceForm').style.display = 'none';
-    }
-
-    resetForm() {
-        this.currentTransaction = {
-            customer_id: null,
-            operator_id: null,
-            wash_type: 'standard',
-            amount: 0,
-            payment_method: 'cash'
-        };
-
-        document.getElementById('vehicleForm').reset();
-        document.getElementById('serviceForm').reset();
-        document.getElementById('successContainer').style.display = 'none';
-        document.getElementById('successContainer').innerHTML = '';
-
-        this.showStep(1);
-        this.generateTransactionId();
-    }
-
-    showLoading(show) {
-        const loader = document.getElementById('loader');
-        if (loader) {
-            loader.style.display = show ? 'flex' : 'none';
-        }
-    }
-
-    showError(message) {
-        const container = document.getElementById('errorContainer') || this.createAlertContainer('error');
-        const alert = document.createElement('div');
-        alert.className = 'alert alert-error';
-        alert.innerHTML = `
-            <i class="fas fa-exclamation-circle"></i>
-            <span>${message}</span>
-        `;
-        container.appendChild(alert);
-
-        setTimeout(() => alert.remove(), 5000);
-    }
-
-    showSuccess(message) {
-        const container = document.getElementById('successContainer') || this.createAlertContainer('success');
-        const alert = document.createElement('div');
-        alert.className = 'alert alert-success';
-        alert.innerHTML = `
-            <i class="fas fa-check-circle"></i>
-            <span>${message}</span>
-        `;
-        container.appendChild(alert);
-
-        setTimeout(() => alert.remove(), 5000);
-    }
-
-    createAlertContainer(type) {
-        const container = document.createElement('div');
-        container.id = type + 'Container';
-        container.className = 'fixed top-4 right-4 z-50 space-y-2';
-        document.body.appendChild(container);
-        return container;
+function generateTransactionId() {
+    const timestamp = Date.now();
+    const random = Math.floor(Math.random() * 1000);
+    currentTransactionId = `TRX${timestamp.toString(36).toUpperCase()}${random.toString().padStart(3, '0')}`;
+    
+    const idElement = document.getElementById('transactionId');
+    if (idElement) {
+        idElement.textContent = currentTransactionId;
     }
 }
 
-// Initialize on page load
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        if (!window.transactionManager) {
-            window.transactionManager = new TransactionManager();
+function setupEventListeners() {
+    // License plate input - check member on blur
+    const licensePlateInput = document.getElementById('licensePlate');
+    if (licensePlateInput) {
+        licensePlateInput.addEventListener('blur', checkMemberByPlate);
+        licensePlateInput.addEventListener('input', function() {
+            this.value = this.value.toUpperCase();
+        });
+    }
+    
+    // Transaction form submit
+    const transactionForm = document.getElementById('transactionForm');
+    if (transactionForm) {
+        transactionForm.addEventListener('submit', handleSubmitTransaction);
+    }
+}
+
+function checkUrlParameters() {
+    const urlParams = new URLSearchParams(window.location.search);
+    
+    // From camera scan
+    const plate = urlParams.get('plate');
+    const customerId = urlParams.get('customer_id');
+    const name = urlParams.get('name');
+    const type = urlParams.get('type');
+    const loyalty = urlParams.get('loyalty');
+    
+    if (plate) {
+        document.getElementById('licensePlate').value = plate;
+        
+        if (customerId) {
+            // Member found from scan
+            currentMemberData = {
+                id: customerId,
+                license_plate: plate,
+                name: name,
+                motorcycle_type: type,
+                loyalty_count: parseInt(loyalty) || 0
+            };
+            
+            displayMemberInfo();
+            
+            // Pre-fill form
+            if (name) document.getElementById('customerName').value = name;
+            if (type) {
+                document.getElementById('motorcycleType').value = type;
+                updatePrice();
+            }
+        } else {
+            // Guest or new customer
+            checkMemberByPlate();
         }
-    });
-} else {
-    if (!window.transactionManager) {
-        window.transactionManager = new TransactionManager();
+    }
+}
+
+async function checkMemberByPlate() {
+    const licensePlate = document.getElementById('licensePlate').value.trim();
+    
+    if (!licensePlate) {
+        hideMemberInfo();
+        return;
+    }
+    
+    try {
+        const response = await apiClient.get('customers');
+        const members = response.data || [];
+        
+        // Find member by license plate
+        const normalizedPlate = licensePlate.replace(/\s/g, '').toUpperCase();
+        const member = members.find(m => 
+            m.license_plate && m.license_plate.replace(/\s/g, '').toUpperCase() === normalizedPlate
+        );
+        
+        if (member) {
+            currentMemberData = member;
+            displayMemberInfo();
+            
+            // Auto-fill form
+            if (member.name) document.getElementById('customerName').value = member.name;
+            if (member.phone) document.getElementById('customerPhone').value = member.phone;
+            if (member.motorcycle_type) {
+                document.getElementById('motorcycleType').value = member.motorcycle_type;
+                updatePrice();
+            }
+        } else {
+            currentMemberData = null;
+            hideMemberInfo();
+        }
+        
+    } catch (error) {
+        console.error('Error checking member:', error);
+    }
+}
+
+function displayMemberInfo() {
+    if (!currentMemberData) return;
+    
+    const memberInfo = document.getElementById('memberInfo');
+    const memberName = document.getElementById('memberName');
+    const loyaltyInfo = document.getElementById('loyaltyInfo');
+    
+    memberName.textContent = currentMemberData.name || 'Member';
+    
+    const loyaltyCount = currentMemberData.loyalty_count || 0;
+    const loyaltyProgress = loyaltyCount % 5;
+    
+    if (loyaltyProgress === 0 && loyaltyCount >= 5) {
+        loyaltyInfo.innerHTML = '<i class="fas fa-gift mr-1"></i>Gratis cuci (Loyalty reward)!';
+    } else {
+        loyaltyInfo.textContent = `Loyalty: ${loyaltyProgress}/5 cuci`;
+    }
+    
+    memberInfo.classList.remove('hidden');
+    updatePrice(); // Recalculate price with loyalty
+}
+
+function hideMemberInfo() {
+    const memberInfo = document.getElementById('memberInfo');
+    memberInfo.classList.add('hidden');
+    updatePrice();
+}
+
+async function loadOperators() {
+    try {
+        const response = await apiClient.get('operators');
+        const operators = response.data || [];
+        
+        const operatorSelect = document.getElementById('operatorId');
+        if (operatorSelect) {
+            let html = '<option value="">- Pilih Operator -</option>';
+            
+            operators.forEach(op => {
+                if (op.active) {
+                    html += `<option value="${op.id}">${op.name}</option>`;
+                }
+            });
+            
+            operatorSelect.innerHTML = html;
+        }
+        
+    } catch (error) {
+        console.error('Error loading operators:', error);
+    }
+}
+
+function updatePrice() {
+    const motorcycleType = document.getElementById('motorcycleType').value;
+    const summaryType = document.getElementById('summaryType');
+    const summaryNormalPrice = document.getElementById('summaryNormalPrice');
+    const summaryTotal = document.getElementById('summaryTotal');
+    const loyaltyDiscountRow = document.getElementById('loyaltyDiscountRow');
+    const summaryDiscount = document.getElementById('summaryDiscount');
+    
+    if (!motorcycleType) {
+        summaryType.textContent = '-';
+        summaryNormalPrice.textContent = 'Rp 0';
+        summaryTotal.textContent = 'Rp 0';
+        loyaltyDiscountRow.classList.add('hidden');
+        return;
+    }
+    
+    const price = PRICING[motorcycleType];
+    const typeName = TYPE_NAMES[motorcycleType];
+    
+    summaryType.textContent = typeName;
+    summaryNormalPrice.textContent = formatCurrency(price);
+    
+    // Check loyalty discount
+    let finalPrice = price;
+    let isFreeWash = false;
+    
+    if (currentMemberData) {
+        const loyaltyCount = currentMemberData.loyalty_count || 0;
+        const loyaltyProgress = loyaltyCount % 5;
+        
+        if (loyaltyProgress === 0 && loyaltyCount >= 5) {
+            // Free wash!
+            isFreeWash = true;
+            finalPrice = 0;
+            loyaltyDiscountRow.classList.remove('hidden');
+            summaryDiscount.textContent = `- ${formatCurrency(price)}`;
+        } else {
+            loyaltyDiscountRow.classList.add('hidden');
+        }
+    } else {
+        loyaltyDiscountRow.classList.add('hidden');
+    }
+    
+    summaryTotal.textContent = formatCurrency(finalPrice);
+    summaryTotal.classList.toggle('text-green-600', isFreeWash);
+    summaryTotal.classList.toggle('text-purple-600', !isFreeWash);
+}
+
+async function handleSubmitTransaction(event) {
+    event.preventDefault();
+    
+    // Validate form
+    const licensePlate = document.getElementById('licensePlate').value.trim();
+    const motorcycleType = document.getElementById('motorcycleType').value;
+    const operatorId = document.getElementById('operatorId').value;
+    
+    if (!licensePlate || !motorcycleType || !operatorId) {
+        showNotification('Mohon lengkapi data yang wajib diisi', 'error');
+        return;
+    }
+    
+    // Prepare transaction data
+    const customerName = document.getElementById('customerName').value.trim();
+    const customerPhone = document.getElementById('customerPhone').value.trim();
+    const paymentMethod = document.getElementById('paymentMethod').value;
+    const notes = document.getElementById('notes').value.trim();
+    
+    const price = PRICING[motorcycleType];
+    let finalPrice = price;
+    let isLoyaltyFree = false;
+    
+    // Check loyalty
+    if (currentMemberData) {
+        const loyaltyCount = currentMemberData.loyalty_count || 0;
+        const loyaltyProgress = loyaltyCount % 5;
+        
+        if (loyaltyProgress === 0 && loyaltyCount >= 5) {
+            isLoyaltyFree = true;
+            finalPrice = 0;
+        }
+    }
+    
+    const transactionData = {
+        transaction_id: currentTransactionId,
+        customer_id: currentMemberData ? currentMemberData.id : null,
+        license_plate: licensePlate,
+        customer_name: customerName || 'Guest',
+        customer_phone: customerPhone,
+        motorcycle_type: motorcycleType,
+        price: finalPrice,
+        original_price: price,
+        is_loyalty_free: isLoyaltyFree,
+        operator_id: operatorId,
+        payment_method: paymentMethod,
+        notes: notes,
+        status: 'completed'
+    };
+    
+    try {
+        showNotification('Memproses transaksi...', 'info');
+        
+        // Submit transaction
+        const response = await apiClient.post('transactions', transactionData);
+        
+        if (response.success) {
+            // Update loyalty count if member
+            if (currentMemberData) {
+                await updateMemberLoyalty(currentMemberData.id, isLoyaltyFree);
+            }
+            
+            // Show success modal
+            showSuccessModal();
+            
+            showNotification('Transaksi berhasil dicatat!', 'success');
+        } else {
+            throw new Error(response.message || 'Gagal memproses transaksi');
+        }
+        
+    } catch (error) {
+        console.error('Error submitting transaction:', error);
+        showNotification('Gagal memproses transaksi: ' + error.message, 'error');
+    }
+}
+
+async function updateMemberLoyalty(customerId, wasFreewash) {
+    try {
+        const response = await apiClient.get(`customers/${customerId}`);
+        const member = response.data;
+        
+        let newLoyaltyCount = member.loyalty_count || 0;
+        
+        if (wasFreewash) {
+            // Reset loyalty count after free wash
+            newLoyaltyCount = 0;
+        } else {
+            // Increment loyalty count
+            newLoyaltyCount++;
+        }
+        
+        await apiClient.put(`customers/${customerId}`, {
+            ...member,
+            loyalty_count: newLoyaltyCount,
+            total_washes: (member.total_washes || 0) + 1
+        });
+        
+    } catch (error) {
+        console.error('Error updating loyalty:', error);
+    }
+}
+
+function showSuccessModal() {
+    const modal = document.getElementById('successModal');
+    const successTrxId = document.getElementById('successTrxId');
+    
+    successTrxId.textContent = currentTransactionId;
+    modal.classList.remove('hidden');
+}
+
+function closeModal() {
+    window.location.href = 'dashboard.html';
+}
+
+function newTransaction() {
+    window.location.href = 'register-wash.html';
+}
+
+function printReceipt() {
+    window.print();
+}
+
+function formatCurrency(amount) {
+    return new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        minimumFractionDigits: 0
+    }).format(amount);
+}
+
+function showNotification(message, type = 'info') {
+    if (typeof window.showNotification === 'function') {
+        window.showNotification(message, type);
+    } else {
+        alert(message);
     }
 }
