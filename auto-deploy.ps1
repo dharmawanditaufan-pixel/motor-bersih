@@ -63,7 +63,7 @@ if (-not $SkipGitHub) {
         Write-Host "⚠️  No remote configured" -ForegroundColor Yellow
         Write-Host "Run with: .\auto-deploy.ps1 -repoUrl 'https://github.com/YOUR-USERNAME/motor-bersih.git'" -ForegroundColor Cyan
     }
-}
+} # Close if (-not $SkipGitHub)
 
 # Step 2: Vercel Deploy (if not Railway-only)
 if (-not $RailwayOnly) {
@@ -113,7 +113,7 @@ if (-not $VercelOnly) {
                 $importDb = Read-Host "Import database schema? (y/n)"
                 if ($importDb -eq 'y') {
                     Write-Host "Importing database..." -ForegroundColor Cyan
-                    railway run mysql < api/schema.sql
+                    Get-Content api/schema.sql | railway run mysql
                     
                     if ($LASTEXITCODE -eq 0) {
                         Write-Host "✅ Database imported successfully!" -ForegroundColor Green

@@ -135,33 +135,154 @@ railway run mysql -h ${MYSQLHOST} -u ${MYSQLUSER} -p${MYSQLPASSWORD} ${MYSQLDATA
 
 ## 🔄 CI/CD dengan GitHub Actions
 
-### Auto-deploy ke Vercel:
+### ⚠️ PENTING: Setup GitHub Secrets Dulu!
 
-1. Get Vercel token:
+Sebelum GitHub Actions bisa deploy, setup secrets ini:
+
+#### 1️⃣ Get Vercel Credentials
+
 ```bash
+# Login ke Vercel
 vercel login
+
+# Link project (jika belum)
+vercel link
+
+# Get token
 vercel token create
 ```
 
-2. Add GitHub Secrets:
-   - `VERCEL_TOKEN`
-   - `VERCEL_ORG_ID`
-   - `VERCEL_PROJECT_ID`
+Setelah run `vercel link`, akan ada file `.vercel/project.json`:
+```json
+{
+  "orgId": "team_xxxxx",
+  "projectId": "prj_xxxxx"
+}
+```
 
-3. Push ke `main` branch → auto deploy
+Copy `orgId` dan `projectId` dari file ini.
 
-### Auto-deploy ke Railway:
+#### 2️⃣ Get Railway Token
 
-1. Get Railway token:
 ```bash
 railway login
 railway token
 ```
 
-2. Add GitHub Secret:
-   - `RAILWAY_TOKEN`
+Copy token yang muncul.
 
-3. Push ke `main` branch → auto deploy
+#### 3️⃣ Add Secrets ke GitHub
+
+**Cara:**
+1. Buka: `https://github.com/YOUR-USERNAME/motor-bersih/settings/secrets/actions`
+2. Click **"New repository secret"**
+3. Add secrets berikut:
+
+| Name | Value | Source |
+|------|-------|--------|
+| `VERCEL_TOKEN` | Token dari `vercel token create` | Vercel CLI |
+| `VERCEL_ORG_ID` | `orgId` dari `.vercel/project.json` | Vercel CLI |
+| `VERCEL_PROJECT_ID` | `projectId` dari `.vercel/project.json` | Vercel CLI |
+| `RAILWAY_TOKEN` | Token dari `railway token` | Railway CLI |
+
+**Screenshot lokasi:**
+```
+GitHub Repository
+└── Settings
+    └── Secrets and variables
+        └── Actions
+            └── New repository secret
+```
+
+#### 4️⃣ Trigger Deployment
+
+Setelah secrets di-setup:
+```bash
+git add .
+git commit -m "Setup CI/CD"
+git push origin main
+```
+
+GitHub Actions akan otomatis:
+- ✅ Build project
+- ✅ Deploy ke Vercel (frontend)
+- ✅ Deploy ke Railway (backend)
+
+#### 5️⃣ Monitor Deployment
+
+Check status di:
+- GitHub: `https://github.com/YOUR-USERNAME/motor-bersih/actions`
+- Vercel: `https://vercel.com/dashboard`
+- Railway: `https://railway.app/dashboard`
+
+---
+
+### 🚨 Troubleshooting GitHub Actions
+
+#### Error: "No existing credentials found" (Vercel)
+**Cause:** GitHub Secrets belum di-setup  
+**Solution:** 
+1. Pastikan 3 secrets sudah ditambahkan: `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`
+2. Re-run failed workflow di GitHub Actions
+
+#### Error: "Invalid token" (Vercel)
+**Cause:** Token expired atau salah  
+**Solution:**
+```bash
+# Generate new token
+vercel token create
+# Update VERCEL_TOKEN secret di GitHub
+```
+
+#### Error: "Project not linked" (Vercel)
+**Cause:** VERCEL_ORG_ID atau VERCEL_PROJECT_ID salah  
+**Solution:**
+```bash
+# Re-link project
+vercel link
+# Copy orgId & projectId dari .vercel/project.json
+# Update secrets di GitHub
+```
+
+#### Error: "Unauthorized. Please login with railway login" (Railway)
+**Cause:** RAILWAY_TOKEN belum di-setup atau invalid  
+**Solution:**
+```bash
+# Generate new token
+railway login
+railway token
+# Add/update RAILWAY_TOKEN secret di GitHub
+```
+
+#### Error: "Unexpected input(s) 'railway_token'" (Railway)
+**Cause:** Railway action syntax changed  
+**Solution:** Workflow sudah diperbaiki menggunakan Railway CLI langsung
+
+---
+
+### Auto-deploy ke Vercel (Manual Alternative):
+
+Jika tidak mau pakai GitHub Actions, deploy manual:
+
+```bash
+# 1. Get token
+vercel login
+vercel token create
+
+# 2. Deploy dengan token
+vercel --prod --token YOUR_TOKEN_HERE
+```
+
+### Auto-deploy ke Railway (Manual Alternative):
+
+```bash
+# 1. Get token  
+railway login
+railway token
+
+# 2. Deploy
+railway up
+```
 
 ---
 

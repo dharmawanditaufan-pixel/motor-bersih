@@ -33,46 +33,83 @@ Script akan:
 
 ---
 
-## STEP 3️⃣: Setup Secrets (untuk auto-deploy)
+## STEP 3️⃣: Setup Secrets (WAJIB untuk auto-deploy)
 
-### A. Vercel Secrets
+⚠️ **Tanpa secrets, GitHub Actions akan GAGAL!**
 
-1. Install Vercel CLI (jika belum):
+### A. Get Vercel Credentials
+
+1. **Install & Login Vercel CLI:**
    ```powershell
    npm install -g vercel
+   vercel login
    ```
 
-2. Login dan get token:
+2. **Link project (create .vercel folder):**
    ```powershell
-   vercel login
+   vercel link
+   ```
+   - Pilih scope/team
+   - Pilih atau buat project baru
+   - Link ke existing project atau create new
+
+3. **Get token:**
+   ```powershell
    vercel token create
    ```
-   Copy token yang dihasilkan
+   Copy token yang muncul (simpan di notepad)
 
-3. Add secrets di GitHub:
-   - Buka: `https://github.com/YOUR-USERNAME/motor-bersih/settings/secrets/actions`
-   - Klik **"New repository secret"**
-   - Name: `VERCEL_TOKEN`
-   - Value: (paste token dari step 2)
-   - Klik **"Add secret"**
+4. **Get ORG_ID dan PROJECT_ID:**
+   Buka file `.vercel/project.json`:
+   ```json
+   {
+     "orgId": "team_xxxxx",      ← Copy ini
+     "projectId": "prj_xxxxx"    ← Copy ini
+   }
+   ```
 
-### B. Railway Secrets
+### B. Get Railway Token
 
-1. Install Railway CLI (jika belum):
+1. **Install & Login Railway CLI:**
    ```powershell
    npm install -g @railway/cli
+   railway login
    ```
 
-2. Login dan get token:
+2. **Get token:**
    ```powershell
-   railway login
    railway token
    ```
-   Copy token yang dihasilkan
+   Copy token yang muncul
 
-3. Add secret di GitHub:
-   - Name: `RAILWAY_TOKEN`
-   - Value: (paste token dari step 2)
+### C. Add Secrets ke GitHub
+
+**URL:** `https://github.com/YOUR-USERNAME/motor-bersih/settings/secrets/actions`
+
+Klik **"New repository secret"** untuk setiap secret:
+
+| Secret Name | Value | Source |
+|-------------|-------|--------|
+| `VERCEL_TOKEN` | Token dari `vercel token create` | Vercel CLI |
+| `VERCEL_ORG_ID` | `orgId` dari `.vercel/project.json` | Vercel CLI |
+| `VERCEL_PROJECT_ID` | `projectId` dari `.vercel/project.json` | Vercel CLI |
+| `RAILWAY_TOKEN` | Token dari `railway token` | Railway CLI |
+
+**Total: 4 secrets**
+
+### D. Trigger Auto-Deploy
+
+Setelah semua secrets ditambahkan:
+```powershell
+git add .
+git commit -m "Trigger auto-deploy"
+git push origin main
+```
+
+**Check progress:**
+- GitHub Actions: `https://github.com/YOUR-USERNAME/motor-bersih/actions`
+- Vercel Dashboard: `https://vercel.com/dashboard`
+- Railway Dashboard: `https://railway.app/dashboard`
 
 ---
 

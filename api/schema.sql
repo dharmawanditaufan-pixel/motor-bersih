@@ -39,17 +39,22 @@ CREATE TABLE `customers` (
   `license_plate` VARCHAR(20) UNIQUE NOT NULL,
   `name` VARCHAR(100) NOT NULL,
   `phone` VARCHAR(15),
+  `whatsapp_number` VARCHAR(15),
   `email` VARCHAR(100),
-  `motorcycle_type` ENUM('matic', 'sport', 'bigbike', 'lainnya') DEFAULT 'matic',
+  `motorcycle_type` ENUM('motor_kecil', 'motor_sedang', 'motor_besar') DEFAULT 'motor_kecil',
+  `motorcycle_brand` VARCHAR(50),
+  `photo_url` VARCHAR(255),
   `is_member` BOOLEAN DEFAULT false,
   `member_points` INT DEFAULT 0,
+  `loyalty_count` INT DEFAULT 0 COMMENT 'Jumlah cuci, setiap 5x dapat gratis 1x',
   `total_washes` INT DEFAULT 0,
   `last_wash_date` TIMESTAMP NULL,
   `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   INDEX `idx_license_plate` (`license_plate`),
   INDEX `idx_is_member` (`is_member`),
-  INDEX `idx_phone` (`phone`)
+  INDEX `idx_phone` (`phone`),
+  INDEX `idx_whatsapp_number` (`whatsapp_number`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================
@@ -99,6 +104,26 @@ CREATE TABLE `transactions` (
   INDEX `idx_created_at` (`created_at`),
   INDEX `idx_status` (`status`),
   INDEX `idx_payment_method` (`payment_method`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================
+-- OPERATOR ATTENDANCE TABLE
+-- ============================================================
+CREATE TABLE `operator_attendance` (
+  `id` INT PRIMARY KEY AUTO_INCREMENT,
+  `operator_id` INT NOT NULL,
+  `date` DATE NOT NULL,
+  `check_in` TIME NULL,
+  `check_out` TIME NULL,
+  `status` ENUM('present', 'absent', 'late', 'leave') DEFAULT 'present',
+  `notes` TEXT,
+  `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (`operator_id`) REFERENCES `operators` (`id`) ON DELETE CASCADE,
+  INDEX `idx_operator_id` (`operator_id`),
+  INDEX `idx_date` (`date`),
+  INDEX `idx_status` (`status`),
+  UNIQUE KEY `unique_attendance` (`operator_id`, `date`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================================
@@ -168,28 +193,45 @@ INSERT INTO `operators` (`user_id`, `name`, `phone`, `commission_rate`, `status`
 (3, 'Andi Wijaya', '081234567892', 30.00, 'active', 'Mandiri', '9876543210');
 
 -- Insert sample customers
-INSERT INTO `customers` (`license_plate`, `name`, `phone`, `email`, `motorcycle_type`, `is_member`, `total_washes`) VALUES
-('B1234ABC', 'Ahmad Riyadi', '081987654321', 'ahmad@email.com', 'matic', true, 5),
-('B5678DEF', 'Siti Nurhaliza', '082123456789', 'siti@email.com', 'sport', false, 2),
-('B9012GHI', 'Rudi Hartono', '083456789012', 'rudi@email.com', 'bigbike', true, 8),
-('B3456JKL', 'Diana Putri', '084567890123', 'diana@email.com', 'matic', false, 1),
-('B7890MNO', 'Supandi Kusuma', '085678901234', 'supandi@email.com', 'bigbike', true, 12);
+INSERT INTO `customers` (`license_plate`, `name`, `phone`, `whatsapp_number`, `motorcycle_type`, `motorcycle_brand`, `is_member`, `loyalty_count`, `total_washes`) VALUES
+('B1234ABC', 'Ahmad Riyadi', '081987654321', '081987654321', 'motor_kecil', 'Honda Beat', true, 3, 5),
+('B5678DEF', 'Siti Nurhaliza', '082123456789', '082123456789', 'motor_sedang', 'Yamaha Vixion', false, 1, 2),
+('B9012GHI', 'Rudi Hartono', '083456789012', '083456789012', 'motor_besar', 'Kawasaki Ninja', true, 6, 8),
+('B3456JKL', 'Diana Putri', '084567890123', '084567890123', 'motor_kecil', 'Honda Scoopy', false, 0, 1),
+('B7890MNO', 'Supandi Kusuma', '085678901234', '085678901234', 'motor_besar', 'Honda CBR', true, 2, 12);
 
 -- Insert sample transactions
 INSERT INTO `transactions` (`transaction_code`, `customer_id`, `operator_id`, `wash_type`, `amount`, `commission_amount`, `payment_method`, `status`, `created_at`, `completed_at`) VALUES
-('TRX001-20250116', 1, 1, 'premium', 150000, 45000, 'cash', 'completed', NOW() - INTERVAL 2 HOUR, NOW() - INTERVAL 1 HOUR),
-('TRX002-20250116', 2, 2, 'standard', 100000, 30000, 'transfer', 'completed', NOW() - INTERVAL 3 HOUR, NOW() - INTERVAL 2 HOUR),
-('TRX003-20250116', 3, 1, 'basic', 75000, 22500, 'cash', 'completed', NOW() - INTERVAL 4 HOUR, NOW() - INTERVAL 3 HOUR),
-('TRX004-20250116', 4, 2, 'standard', 100000, 30000, 'qris', 'in_progress', NOW() - INTERVAL 30 MINUTE, NULL),
-('TRX005-20250116', 5, 1, 'premium', 150000, 45000, 'cash', 'pending', NOW() - INTERVAL 15 MINUTE, NULL);
+('TRX001-20250117', 1, 1, 'standard', 15000, 4500, 'cash', 'completed', NOW() - INTERVAL 2 HOUR, NOW() - INTERVAL 1 HOUR),
+('TRX002-20250117', 2, 2, 'standard', 20000, 6000, 'transfer', 'completed', NOW() - INTERVAL 3 HOUR, NOW() - INTERVAL 2 HOUR),
+('TRX003-20250117', 3, 1, 'standard', 20000, 6000, 'cash', 'completed', NOW() - INTERVAL 4 HOUR, NOW() - INTERVAL 3 HOUR),
+('TRX004-20250117', 4, 2, 'standard', 15000, 4500, 'qris', 'in_progress', NOW() - INTERVAL 30 MINUTE, NULL),
+('TRX005-20250117', 5, 1, 'standard', 20000, 6000, 'cash', 'pending', NOW() - INTERVAL 15 MINUTE, NULL);
 
 -- Insert commissions
 INSERT INTO `commissions` (`operator_id`, `transaction_id`, `amount`, `status`, `paid_date`) VALUES
-(1, 1, 45000, 'paid', NOW() - INTERVAL 1 DAY),
-(2, 2, 30000, 'paid', NOW() - INTERVAL 1 DAY),
-(1, 3, 22500, 'paid', NOW() - INTERVAL 1 DAY),
-(2, 4, 30000, 'pending', NULL),
-(1, 5, 45000, 'pending', NULL);
+(1, 1, 4500, 'paid', NOW() - INTERVAL 1 DAY),
+(2, 2, 6000, 'paid', NOW() - INTERVAL 1 DAY),
+(1, 3, 6000, 'paid', NOW() - INTERVAL 1 DAY),
+(2, 4, 4500, 'pending', NULL),
+(1, 5, 6000, 'pending', NULL);
+
+-- Insert operator attendance (sample data for current month)
+INSERT INTO `operator_attendance` (`operator_id`, `date`, `check_in`, `check_out`, `status`) VALUES
+(1, CURDATE() - INTERVAL 7 DAY, '08:00:00', '17:00:00', 'present'),
+(1, CURDATE() - INTERVAL 6 DAY, '08:15:00', '17:05:00', 'late'),
+(1, CURDATE() - INTERVAL 5 DAY, '08:00:00', '17:00:00', 'present'),
+(1, CURDATE() - INTERVAL 4 DAY, NULL, NULL, 'absent'),
+(1, CURDATE() - INTERVAL 3 DAY, '08:00:00', '17:00:00', 'present'),
+(1, CURDATE() - INTERVAL 2 DAY, '08:00:00', '17:00:00', 'present'),
+(1, CURDATE() - INTERVAL 1 DAY, '08:00:00', '17:00:00', 'present'),
+(2, CURDATE() - INTERVAL 7 DAY, '08:00:00', '17:00:00', 'present'),
+(2, CURDATE() - INTERVAL 6 DAY, '08:00:00', '17:00:00', 'present'),
+(2, CURDATE() - INTERVAL 5 DAY, '08:00:00', '16:00:00', 'present'),
+(2, CURDATE() - INTERVAL 4 DAY, '08:00:00', '17:00:00', 'present'),
+(2, CURDATE() - INTERVAL 3 DAY, NULL, NULL, 'leave'),
+(2, CURDATE() - INTERVAL 2 DAY, '08:00:00', '17:00:00', 'present'),
+(2, CURDATE() - INTERVAL 1 DAY, '08:30:00', '17:00:00', 'late');
 
 -- Insert application settings
 INSERT INTO `settings` (`key`, `value`, `description`) VALUES
@@ -197,12 +239,14 @@ INSERT INTO `settings` (`key`, `value`, `description`) VALUES
 ('app_version', '2.0', 'Versi aplikasi'),
 ('currency', 'IDR', 'Mata uang'),
 ('commission_rate_default', '30', 'Komisi default operator (persen)'),
-('basic_wash_price', '75000', 'Harga cuci dasar'),
-('standard_wash_price', '100000', 'Harga cuci standar'),
-('premium_wash_price', '150000', 'Harga cuci premium'),
-('member_discount_rate', '10', 'Diskon member (persen)'),
+('motor_kecil_price', '15000', 'Harga cuci motor kecil'),
+('motor_sedang_price', '20000', 'Harga cuci motor sedang'),
+('motor_besar_price', '20000', 'Harga cuci motor besar'),
+('loyalty_free_wash', '5', 'Cuci gratis setiap N kali cuci'),
+('member_discount_rate', '0', 'Diskon member (persen)'),
 ('daily_closing_time', '22:00', 'Waktu tutup harian'),
-('timezone', 'Asia/Jakarta', 'Zona waktu');
+('timezone', 'Asia/Jakarta', 'Zona waktu'),
+('whatsapp_notification', '1', 'Aktifkan notifikasi WhatsApp');
 
 -- ============================================================
 -- VIEWS FOR EASY QUERIES
@@ -239,14 +283,20 @@ SELECT
   c.name,
   c.license_plate,
   c.motorcycle_type,
+  c.motorcycle_brand,
   c.is_member,
+  c.loyalty_count,
   COUNT(t.id) as total_washes,
   SUM(t.amount) as total_spent,
   MAX(t.completed_at) as last_wash_date,
-  MIN(t.created_at) as first_wash_date
+  MIN(t.created_at) as first_wash_date,
+  CASE 
+    WHEN c.loyalty_count >= 5 THEN 1 
+    ELSE 0 
+  END as has_free_wash
 FROM customers c
 LEFT JOIN transactions t ON c.id = t.customer_id AND t.status = 'completed'
-GROUP BY c.id, c.name, c.license_plate, c.motorcycle_type, c.is_member;
+GROUP BY c.id, c.name, c.license_plate, c.motorcycle_type, c.motorcycle_brand, c.is_member, c.loyalty_count;
 
 -- ============================================================
 -- BACKUP INFORMATION

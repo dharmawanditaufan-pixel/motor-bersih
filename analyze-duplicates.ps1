@@ -44,9 +44,9 @@ foreach ($file in $htmlFiles) {
     $duplicates = @()
     
     foreach ($script in $scriptFiles.Keys) {
-        $regexMatches = [regex]::Matches($content, $script)
-        if ($regexMatches.Count -gt 1) {
-            $duplicates += "$script ($($regexMatches.Count)x)"
+        $patternMatches = [regex]::Matches($content, $script)
+        if ($patternMatches.Count -gt 1) {
+            $duplicates += "$script ($($patternMatches.Count)x)"
         }
     }
     

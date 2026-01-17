@@ -46,3 +46,4 @@ cache/
 
 # Railway
 .railway/
+.vercel

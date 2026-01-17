@@ -335,6 +335,9 @@ curl -X POST http://localhost:3000/api/auth \
 
 ## 📸 Screenshots
 
+> **Note:** Screenshots coming soon! Application is fully functional.
+
+<!-- 
 ### Dashboard
 ![Dashboard](docs/screenshots/dashboard.png)
 
@@ -343,6 +346,7 @@ curl -X POST http://localhost:3000/api/auth \
 
 ### Camera Scanner
 ![Scanner](docs/screenshots/scanner.png)
+-->
 
 ---
 

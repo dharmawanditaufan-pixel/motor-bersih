@@ -15,14 +15,17 @@ class APIClient {
      * Works with any folder structure
      */
     detectBaseURL() {
-        // Get current path
-        const pathArray = window.location.pathname.split('/').filter(p => p);
+        // Production backend URL (Railway)
+        if (window.location.hostname.includes('vercel.app')) {
+            // When deployed on Vercel, use Railway backend
+            return 'https://motor-bersih-api.up.railway.app/api/';
+        }
         
-        // Find 'motor-bersih' or similar folder
+        // Local development - detect path
+        const pathArray = window.location.pathname.split('/').filter(p => p);
         const appIndex = pathArray.indexOf('motor-bersih');
         
         if (appIndex >= 0) {
-            // Reconstruct path up to motor-bersih
             const basePath = '/' + pathArray.slice(0, appIndex + 1).join('/');
             return basePath + '/api/';
         }
