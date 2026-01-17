@@ -15,15 +15,19 @@ if (!$user) {
 }
 
 $method = $_SERVER['REQUEST_METHOD'];
-$path = $_GET['path'] ?? '';
+
+// Get the request URI path to determine endpoint
+$requestUri = $_SERVER['REQUEST_URI'];
+$isCheckIn = strpos($requestUri, '/checkin') !== false;
+$isCheckOut = strpos($requestUri, '/checkout') !== false;
 
 // Route requests
 if ($method === 'GET') {
     handleGetAttendance();
 } elseif ($method === 'POST') {
-    if (strpos($path, 'checkin') !== false) {
+    if ($isCheckIn) {
         handleCheckIn();
-    } elseif (strpos($path, 'checkout') !== false) {
+    } elseif ($isCheckOut) {
         handleCheckOut();
     } else {
         handleCreateAttendance();

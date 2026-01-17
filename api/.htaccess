@@ -1,0 +1,85 @@
+# Motor Bersih POS - API Routing Configuration
+# Created: January 17, 2026
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /motor-bersih/api/
+    
+    # Enable CORS
+    Header always set Access-Control-Allow-Origin "*"
+    Header always set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+    Header always set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+    Header always set Access-Control-Allow-Credentials "true"
+    
+    # Handle preflight OPTIONS requests
+    RewriteCond %{REQUEST_METHOD} OPTIONS
+    RewriteRule ^(.*)$ $1 [R=200,L]
+    
+    # API Endpoint Routing
+    # /api/auth -> auth.php
+    RewriteRule ^auth/?$ auth.php [L,QSA]
+    
+    # /api/dashboard -> dashboard.php
+    RewriteRule ^dashboard/?$ dashboard.php [L,QSA]
+    
+    # /api/transactions -> transactions.php
+    RewriteRule ^transactions/?$ transactions.php [L,QSA]
+    RewriteRule ^transactions/([0-9]+)/?$ transactions.php?id=$1 [L,QSA]
+    
+    # /api/customers -> customers.php
+    RewriteRule ^customers/?$ customers.php [L,QSA]
+    RewriteRule ^customers/([0-9]+)/?$ customers.php?id=$1 [L,QSA]
+    
+    # /api/operators -> operators.php
+    RewriteRule ^operators/?$ operators.php [L,QSA]
+    RewriteRule ^operators/([0-9]+)/?$ operators.php?id=$1 [L,QSA]
+    
+    # /api/attendance -> attendance.php
+    RewriteRule ^attendance/?$ attendance.php [L,QSA]
+    RewriteRule ^attendance/checkin/?$ attendance.php [L,QSA]
+    RewriteRule ^attendance/checkout/?$ attendance.php [L,QSA]
+    
+    # /api/commissions -> commissions.php
+    RewriteRule ^commissions/?$ commissions.php [L,QSA]
+    RewriteRule ^commissions/pay/?$ commissions.php [L,QSA]
+    
+    # /api/status -> status.php
+    RewriteRule ^status/?$ status.php [L,QSA]
+    
+    # Security: Deny access to sensitive files
+    <FilesMatch "\.(env|sql|log|md)$">
+        Order Allow,Deny
+        Deny from all
+    </FilesMatch>
+    
+    # Block directory listing
+    Options -Indexes
+    
+    # PHP Configuration
+    <IfModule mod_php7.c>
+        php_value upload_max_filesize 5M
+        php_value post_max_size 5M
+        php_value max_execution_time 300
+        php_value memory_limit 128M
+    </IfModule>
+</IfModule>
+
+# Prevent access to hidden files
+<FilesMatch "^\.">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>
+
+# Set default charset
+AddDefaultCharset UTF-8
+
+# Compress text files
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css text/javascript application/javascript application/json
+</IfModule>
+
+# Enable browser caching for static files
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType application/json "access plus 0 seconds"
+</IfModule>

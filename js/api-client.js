@@ -15,10 +15,15 @@ class APIClient {
      * Works with any folder structure
      */
     detectBaseURL() {
-        // Production backend URL (Railway)
+        // Check for production environment variable (set during build)
+        if (typeof PRODUCTION_API_URL !== 'undefined' && PRODUCTION_API_URL) {
+            return PRODUCTION_API_URL;
+        }
+        
+        // Production backend URL (Vercel deployed)
         if (window.location.hostname.includes('vercel.app')) {
-            // When deployed on Vercel, use Railway backend
-            return 'https://motor-bersih-api.up.railway.app/api/';
+            // Use environment variable or fallback
+            return window.PRODUCTION_API_URL || 'https://motor-bersih-production.up.railway.app/api/';
         }
         
         // Local development - detect path
