@@ -20,11 +20,10 @@ class APIClient {
             return PRODUCTION_API_URL;
         }
         
-        // Production backend URL (Vercel deployed)
+        // Production backend URL (Vercel deployed frontend)
         if (window.location.hostname.includes('vercel.app')) {
-            // TEMPORARY: Use local backend for testing
-            // TODO: Replace with actual Railway URL after backend deployment
-            return 'http://localhost/motor-bersih/api/';
+            // InfinityFree Backend API
+            return 'http://motor-bersih.infinityfreeapp.com/api/';
         }
         
         // Local development - detect path
